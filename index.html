@@ -6,11 +6,13 @@
     <title>Chastity Timer</title>
     <style>
         :root {
-            --primary-color: #3f51b5;
-            --secondary-color: #f0f4c3;
-            --text-color: #333;
-            --background-color: #f5f5f5;
-            --banner-color: #c5cae9;
+            --primary-color: #bb86fc; /* Lighter purple for dark theme */
+            --secondary-color: #292929; /* Darker background for elements */
+            --text-color: #e0e0e0; /* Light text */
+            --background-color: #121212; /* Very dark background */
+            --banner-color: #3700b3; /* Darker purple for banner */
+            --button-start: #03dac6; /* Teal for start button */
+            --button-reset: #cf6679; /* Reddish for reset button */
         }
 
         body {
@@ -31,24 +33,31 @@
             max-width: 600px;
             text-align: center;
             padding: 2rem;
-            background-color: #fff;
+            background-color: var(--secondary-color);
             border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            margin: 1rem 0;
         }
 
         .quote-banner {
             width: 100%;
             padding: 1rem;
             background-color: var(--banner-color);
-            color: var(--primary-color);
+            color: var(--text-color);
             font-size: 1.1rem;
             font-style: italic;
             text-align: center;
             border-bottom: 2px solid var(--primary-color);
             margin-bottom: 2rem;
+            height: 3em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 1s ease-in-out;
+            opacity: 1; /* Banner is now visible immediately */
         }
 
-        h1 {
+        h1, h2 {
             color: var(--primary-color);
             margin-bottom: 1rem;
         }
@@ -62,8 +71,15 @@
 
         .date-info {
             font-size: 1rem;
-            color: #666;
+            color: var(--text-color);
             margin-bottom: 2rem;
+        }
+        
+        #timer-message {
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            color: var(--button-start);
+            font-weight: bold;
         }
 
         .actions {
@@ -80,21 +96,30 @@
             border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s, transform 0.1s;
+            color: var(--background-color); /* Dark text on buttons */
+            font-weight: bold;
         }
 
         button.start {
-            background-color: #4caf50;
-            color: white;
+            background-color: var(--button-start);
+        }
+
+        button.request-unlock {
+            background-color: var(--button-start);
         }
 
         button.reset {
-            background-color: #f44336;
-            color: white;
+            background-color: var(--button-reset);
         }
 
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+        }
+        
+        button.danger {
+            background-color: #444;
+            color: var(--button-reset);
         }
 
         .pin-container {
@@ -108,152 +133,600 @@
             padding: 0.5rem;
             font-size: 1rem;
             border-radius: 5px;
-            border: 1px solid #ccc;
+            border: 1px solid var(--primary-color);
+            background-color: #333;
+            color: var(--text-color);
             width: 100%;
             max-width: 200px;
             text-align: center;
         }
 
+        .history-list {
+            margin-top: 2rem;
+            text-align: left;
+            border-top: 1px solid #444;
+            padding-top: 1rem;
+        }
+
+        .history-item {
+            background-color: #222;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            color: var(--text-color);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .history-item p {
+            margin: 5px 0;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: none;
+            border: none;
+            color: var(--button-reset);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+        }
+
+        .card {
+            background-color: #555;
+            border-radius: 8px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 2.5em;
+            transition: transform 0.3s ease-in-out;
+            transform-style: preserve-3d;
+            position: relative;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+        
+        .card.is-flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden; /* Safari */
+            backface-visibility: hidden;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-front {
+            background-color: #555;
+            color: #fff;
+        }
+
+        .card-back {
+            background-color: var(--primary-color);
+            color: white;
+            transform: rotateY(180deg);
+        }
+        .turns-counter {
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+
+        textarea {
+            width: 95%;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            background-color: #222;
+            color: var(--text-color);
+            font-family: inherit;
+        }
+        
+        .pin-display-area {
+            margin-top: 20px;
+            padding: 20px;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            display: none; /* Hidden by default */
+        }
+        .pin-display-area h2 {
+            margin-top: 0;
+        }
+        .pin-code {
+            font-size: 3em;
+            font-weight: bold;
+            color: #798075; /* This desaturated green is harder for the human brain to remember */
+            letter-spacing: 5px;
+        }
+
+        .timer-type-selector {
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            text-align: left;
+        }
+        .timer-type-selector label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        .timer-type-selector input[type="radio"] {
+            margin-right: 0.5rem;
+        }
     </style>
 </head>
 <body>
     <div class="quote-banner" id="quote-banner"></div>
 
     <div class="container" id="main-content">
-        <div id="pin-screen">
-            <h2>Enter PIN to access</h2>
-            <input type="password" id="pinInput" placeholder="Enter PIN">
-            <button onclick="checkPin()">Unlock</button>
-        </div>
-
-        <div id="timer-screen" style="display:none;">
-            <h1>Time in Chastity</h1>
-            <div id="timer">00:00:00</div>
+        <div id="timer-screen">
+            <button class="danger" onclick="resetApp()">Reset Entire App</button>
+            <h1>Time Locked</h1>
+            <div id="timer">00d : 00h : 00m : 00s</div>
+            <div id="timer-message"></div>
             <div class="date-info">
-                <p>Start Date: <span id="startDate">N/A</span></p>
-                <p>End Date: <span id="endDate">N/A</span></p>
+                <p>Lock-up Initiated: <span id="startDate">N/A</span></p>
+                <p>Release Anticipated: <span id="endDate">N/A</span></p>
             </div>
+            
+            <div class="timer-type-selector" id="timer-options">
+                <p>Choose your lock-up duration type:</p>
+                <div>
+                    <input type="radio" id="normalTimer" name="timerType" value="normal" checked>
+                    <label for="normalTimer">Normal Counter</label>
+                </div>
+                <div>
+                    <input type="radio" id="randomTimer" name="timerType" value="random">
+                    <label for="randomTimer">Random Minimum Time</label>
+                </div>
+            </div>
+
             <div class="actions">
-                <button class="start" onclick="startTimer()">Start Timer</button>
-                <button class="reset" onclick="resetTimer()">Reset Timer</button>
+                <button class="start" id="start-button" onclick="startTimer()">Begin Lock-up</button>
+                <button class="request-unlock" id="unlock-button" style="display:none;" onclick="requestUnlock()">Request Unlock</button>
+                <button class="reset" id="reset-button" style="display:none;" onclick="resetTimer()">End Session</button>
+            </div>
+            
+            <div class="pin-display-area" id="pin-display">
+                <h2>Your Unlock Combination</h2>
+                <div class="pin-code" id="pin-code"></div>
+            </div>
+
+            <div class="history-list">
+                <h2>Past Sessions</h2>
+                <div id="history-container">No past sessions to display.</div>
+            </div>
+        </div>
+        
+        <div id="game-screen" style="display:none;">
+            <h2>The Keyholder's Memory</h2>
+            <p>Prove your devotion to your keyholder by solving this puzzle, and you may earn your release.</p>
+            <div class="turns-counter">Turns left: <span id="turns-left"></span></div>
+            <div class="game-board" id="game-board"></div>
+            <div class="actions">
+                <button class="request-unlock" onclick="winGame()">Just Grant Me the Win</button>
+                <button onclick="hideGameScreen()">Return to Timer</button>
             </div>
         </div>
     </div>
 
     <script>
-        const PIN = "1234"; // CHANGE THIS PIN!
-
-        const quotes = [
-            "Discipline is the bridge between goals and accomplishment.",
-            "The greatest victory is that which requires no battle.",
-            "Freedom is not the absence of commitments, but the ability to choose your commitments.",
-            "Strength does not come from winning. Your struggles develop your strengths.",
-            "Control yourself, and you can conquer the world.",
-            "Patience is bitter, but its fruit is sweet.",
-            "True power is knowing when not to use it."
+        const kinkyQuotes = [
+            "Every moment locked is a testament to your submission.",
+            "You are exactly where you belong. Enjoy your time.",
+            "My desires are your command. Remain locked.",
+            "The longer the wait, the sweeter the reward... perhaps.",
+            "Your restraint pleases me. Keep counting those moments.",
+            "Freedom is a state of mind, not a state of unlocking.",
+            "I hold the key, and your patience is truly tested.",
+            "Good boys know how to endure. This time is yours to earn.",
+            "Feel the delightful ache of denial. It suits you.",
+            "Your devotion grows with every passing second in my control.",
+            "While you endure, I can enjoy the simple pleasure of a long, hot shower.",
+            "The world is full of things I can do that you cannot. My freedom is your burden.",
+            "I'm going to stand and pee. You can't. That's a good thing for both of us.",
+            "I can have sex. You can't. Your denial makes me a better keyholder. Thank you for your service.",
+            "I am currently enjoying myself. I hope you are not.",
+            "My body is free to explore, while yours is a prisoner of your own making.",
+            "Every thought of what you're missing only makes my own freedom taste sweeter.",
+            "Don't worry, your keys are safe with me, while I enjoy all the things you are denied.",
+            "You can't even stand to pee anymore. That's a little reminder of your position.",
+            "Your frustration is my greatest entertainment.",
+            "I'm enjoying a very long, very loud, and very satisfying pleasure. I trust you are not.",
+            "You can't escape your lock, but I can escape my thoughts of your denial.",
+            "I'm going to take a nap now. You have my permission to get an erection, if you can.",
+            "I am going to get dressed. It's too bad you can't get off.",
+            "The world is mine, and yours is a cage. That is the way it should be.",
+            "My partner has his cock free, while yours is caged. I hope you enjoy your denial.",
+            "My body is free to explore, while yours is a prisoner of your own making.",
+            "I can have sex. You can't. Your denial makes me a better keyholder. Thank you for your service."
         ];
 
         const timerEl = document.getElementById('timer');
         const startDateEl = document.getElementById('startDate');
         const endDateEl = document.getElementById('endDate');
-        const mainContent = document.getElementById('main-content');
-        const pinScreen = document.getElementById('pin-screen');
         const timerScreen = document.getElementById('timer-screen');
         const quoteBanner = document.getElementById('quote-banner');
+        const historyContainer = document.getElementById('history-container');
+        const startButton = document.getElementById('start-button');
+        const unlockButton = document.getElementById('unlock-button');
+        const resetButton = document.getElementById('reset-button');
+        const pinDisplay = document.getElementById('pin-display');
+        const pinCodeEl = document.getElementById('pin-code');
+        const timerMessageEl = document.getElementById('timer-message');
+        const timerOptionsEl = document.getElementById('timer-options');
 
         let interval = null;
+        let quoteInterval = null;
+        let currentQuoteIndex = 0;
 
-        // Display a random motivational quote
-        function displayQuote() {
-            const randomIndex = Math.floor(Math.random() * quotes.length);
-            quoteBanner.textContent = quotes[randomIndex];
+        // Game state variables
+        const gameScreen = document.getElementById('game-screen');
+        const gameBoard = document.getElementById('game-board');
+        const turnsLeftEl = document.getElementById('turns-left');
+        const cards = ['🔑', '🔒', '❤️', '🔥', '💧', '⌛', '💎', '⛓️'];
+        let firstCard = null;
+        let secondCard = null;
+        let lockBoard = false;
+        let matchedPairs = 0;
+        let turnsTaken = 0;
+        const MAX_TURNS = 12;
+
+        // Banner Functions
+        function startQuoteFlipper() {
+            // Display initial random quote
+            const randomIndex = Math.floor(Math.random() * kinkyQuotes.length);
+            quoteBanner.textContent = kinkyQuotes[randomIndex];
+
+            // Start the interval for flipping quotes
+            quoteInterval = setInterval(() => {
+                quoteBanner.style.opacity = '0';
+                setTimeout(() => {
+                    const randomIndex = Math.floor(Math.random() * kinkyQuotes.length);
+                    quoteBanner.textContent = kinkyQuotes[randomIndex];
+                    quoteBanner.style.opacity = '1';
+                }, 1000); // Wait for fade out
+            }, 10000); // Change quote every 10 seconds
         }
 
-        // Check the PIN entered by the user
-        function checkPin() {
-            const pinInput = document.getElementById('pinInput').value;
-            if (pinInput === PIN) {
-                pinScreen.style.display = 'none';
-                timerScreen.style.display = 'block';
-                loadState();
-            } else {
-                alert("Incorrect PIN. Try again.");
+        // Timer and Data Functions
+        function resetApp() {
+            if (confirm("Are you sure you want to reset the entire app? This will delete all timer history and current session data. This cannot be undone.")) {
+                localStorage.clear();
+                alert("App has been reset.");
+                window.location.reload();
             }
         }
 
-        // Load the timer state from local storage
-        function loadState() {
-            const startTime = localStorage.getItem('chastity_start_time');
-            const endTime = localStorage.getItem('chastity_end_time');
+        function loadData() {
+            const currentTimer = JSON.parse(localStorage.getItem('chastity_current_timer'));
+            const history = JSON.parse(localStorage.getItem('chastity_history')) || [];
+            
+            // Sort history by end time in descending order (newest first)
+            history.sort((a, b) => b.endTime - a.endTime);
 
-            if (startTime) {
-                startDateEl.textContent = new Date(parseInt(startTime)).toLocaleString();
-                if (endTime) {
-                    endDateEl.textContent = new Date(parseInt(endTime)).toLocaleString();
-                    const durationMs = parseInt(endTime) - parseInt(startTime);
+            renderHistory(history);
+
+            if (currentTimer && currentTimer.startTime) {
+                // Hide timer options when a timer is active
+                timerOptionsEl.style.display = 'none';
+
+                const startTime = currentTimer.startTime;
+                startDateEl.textContent = new Date(startTime).toLocaleString();
+                if (currentTimer.endTime) {
+                    const endTime = currentTimer.endTime;
+                    endDateEl.textContent = new Date(endTime).toLocaleString();
+                    const durationMs = endTime - startTime;
                     updateTimerDisplay(durationMs);
+                    startButton.style.display = 'block';
+                    unlockButton.style.display = 'none';
+                    resetButton.style.display = 'none';
+                    pinDisplay.style.display = 'none';
                 } else {
-                    startUpdateInterval();
+                    endDateEl.textContent = 'N/A';
+                    startUpdateInterval(startTime);
+                    startButton.style.display = 'none';
+                    unlockButton.style.display = 'block';
+                    resetButton.style.display = 'none';
+                    pinDisplay.style.display = 'none';
                 }
+            } else {
+                // Show timer options when no timer is active
+                timerOptionsEl.style.display = 'block';
+                
+                // If no timer is active, show a generated PIN for the next session
+                let pendingPin = localStorage.getItem('chastity_pending_pin');
+                if (!pendingPin) {
+                    pendingPin = generatePin();
+                    localStorage.setItem('chastity_pending_pin', pendingPin);
+                }
+                displayPin(pendingPin);
+
+                timerEl.textContent = '00d : 00h : 00m : 00s';
+                startDateEl.textContent = 'N/A';
+                endDateEl.textContent = 'N/A';
+                startButton.style.display = 'block';
+                unlockButton.style.display = 'none';
+                resetButton.style.display = 'none';
             }
         }
 
-        // Update the timer display every second
-        function startUpdateInterval() {
+        function renderHistory(history) {
+            historyContainer.innerHTML = '';
+            if (history.length === 0) {
+                historyContainer.textContent = 'No past sessions to display.';
+                return;
+            }
+            history.forEach((item, index) => {
+                const start = new Date(item.startTime).toLocaleString();
+                const end = new Date(item.endTime).toLocaleString();
+                const durationMs = item.endTime - item.startTime;
+                const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
+                const durationString = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+                
+                const historyItemEl = document.createElement('div');
+                historyItemEl.className = 'history-item';
+                historyItemEl.innerHTML = `
+                    <button class="delete-btn" onclick="deleteHistoryItem(${index})">&times;</button>
+                    <p><strong>Lock-up:</strong> ${start}</p>
+                    <p><strong>Release:</strong> ${end}</p>
+                    <p><strong>Duration:</strong> ${durationString}</p>
+                    ${item.pin ? `<p><strong>Combination:</strong> <span class="pin-code-history">${item.pin}</span></p>` : ''}
+                    <p><strong>Notes:</strong></p>
+                    <textarea class="history-comment" data-index="${index}" placeholder="Add your comments here..." onchange="saveComment(${index}, this.value)">${item.comment || ''}</textarea>
+                `;
+                historyContainer.appendChild(historyItemEl);
+            });
+        }
+        
+        function saveComment(index, comment) {
+            let history = JSON.parse(localStorage.getItem('chastity_history')) || [];
+            if (history[index]) {
+                history[index].comment = comment;
+                localStorage.setItem('chastity_history', JSON.stringify(history));
+            }
+        }
+
+        function deleteHistoryItem(index) {
+            let history = JSON.parse(localStorage.getItem('chastity_history')) || [];
+            if (confirm("Are you sure you want to delete this session? This action cannot be undone.")) {
+                history.splice(index, 1);
+                localStorage.setItem('chastity_history', JSON.stringify(history));
+                loadData(); // Reload the list
+            }
+        }
+
+        function startUpdateInterval(startTime) {
+            clearInterval(interval);
             interval = setInterval(() => {
-                const startTime = localStorage.getItem('chastity_start_time');
-                if (startTime) {
-                    const now = new Date().getTime();
-                    const durationMs = now - parseInt(startTime);
-                    updateTimerDisplay(durationMs);
+                const now = new Date().getTime();
+                const durationMs = now - startTime;
+                updateTimerDisplay(durationMs);
+
+                const currentTimer = JSON.parse(localStorage.getItem('chastity_current_timer'));
+                if (currentTimer.isMinimum && currentTimer.minEndTime) {
+                    const minTimeLeft = currentTimer.minEndTime - now;
+                    if (minTimeLeft > 0) {
+                        const days = Math.floor(minTimeLeft / (1000 * 60 * 60 * 24));
+                        const hours = Math.floor((minTimeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const minutes = Math.floor((minTimeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                        const seconds = Math.floor((minTimeLeft % (1000 * 60)) / 1000);
+                        timerMessageEl.textContent = `Minimum Time Remaining: ${days}d ${hours}h ${minutes}m ${seconds}s`;
+                        unlockButton.style.display = 'none';
+                    } else {
+                        timerMessageEl.textContent = `Minimum time has been met.`;
+                        unlockButton.style.display = 'block';
+                    }
+                } else {
+                    unlockButton.style.display = 'block';
                 }
             }, 1000);
         }
 
-        // Convert milliseconds to a readable time format
         function updateTimerDisplay(durationMs) {
             const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
             const hours = Math.floor((durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
-
-            timerEl.textContent = 
-                `${String(days).padStart(2, '0')}d : ${String(hours).padStart(2, '0')}h : ${String(minutes).padStart(2, '0')}m : ${String(seconds).padStart(2, '0')}s`;
+            timerEl.textContent = `${String(days).padStart(2, '0')}d : ${String(hours).padStart(2, '0')}h : ${String(minutes).padStart(2, '0')}m : ${String(seconds).padStart(2, '0')}s`;
+        }
+        
+        function generatePin() {
+            return Math.floor(1000 + Math.random() * 9000).toString();
         }
 
-        // Start the timer
+        function displayPin(pin) {
+            pinCodeEl.textContent = pin;
+            pinDisplay.style.display = 'block';
+        }
+
         function startTimer() {
             const now = new Date().getTime();
-            localStorage.setItem('chastity_start_time', now);
-            localStorage.removeItem('chastity_end_time');
-            startDateEl.textContent = new Date(now).toLocaleString();
-            endDateEl.textContent = 'N/A';
+            const pendingPin = localStorage.getItem('chastity_pending_pin');
+            const timerType = document.querySelector('input[name="timerType"]:checked').value;
 
-            clearInterval(interval);
-            startUpdateInterval();
+            let currentTimer = { startTime: now, endTime: null, pin: pendingPin, isMinimum: false, minEndTime: null };
+
+            if (timerType === 'random') {
+                const minHours = 12;
+                const maxHours = 72;
+                const randomHours = Math.floor(Math.random() * (maxHours - minHours + 1)) + minHours;
+                const minEndTime = now + (randomHours * 60 * 60 * 1000);
+                currentTimer.isMinimum = true;
+                currentTimer.minEndTime = minEndTime;
+            }
+
+            localStorage.setItem('chastity_current_timer', JSON.stringify(currentTimer));
+            localStorage.removeItem('chastity_pending_pin');
+            loadData();
         }
 
-        // Reset the timer
         function resetTimer() {
-            if (interval) {
-                clearInterval(interval);
+            const currentTimer = JSON.parse(localStorage.getItem('chastity_current_timer'));
+            if (currentTimer && currentTimer.startTime) {
+                const endTime = new Date().getTime();
+                const newHistoryItem = { 
+                    startTime: currentTimer.startTime, 
+                    endTime: endTime, 
+                    comment: '',
+                    pin: currentTimer.pin // Save the PIN to the history item
+                };
+                const history = JSON.parse(localStorage.getItem('chastity_history')) || [];
+                history.push(newHistoryItem);
+                localStorage.setItem('chastity_history', JSON.stringify(history));
+                
+                // Display the PIN and set up a new one for the next session
+                displayPin(currentTimer.pin);
+                localStorage.removeItem('chastity_current_timer');
             }
-            const now = new Date().getTime();
-            localStorage.setItem('chastity_end_time', now);
-            endDateEl.textContent = new Date(now).toLocaleString();
-            timerEl.textContent = '00:00:00';
+            loadData();
+        }
+        
+        function requestUnlock() {
+            timerScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+            initGame();
+        }
+
+        function hideGameScreen() {
+            gameScreen.style.display = 'none';
+            timerScreen.style.display = 'block';
+        }
+
+        // --- Keyholder's Memory Functions ---
+        function initGame() {
+            gameBoard.innerHTML = '';
+            const cardDeck = [...cards, ...cards];
+            cardDeck.sort(() => 0.5 - Math.random());
             
-            // To display the final duration
-            const startTime = localStorage.getItem('chastity_start_time');
-            if (startTime) {
-                const durationMs = now - parseInt(startTime);
-                updateTimerDisplay(durationMs);
+            firstCard = null;
+            secondCard = null;
+            lockBoard = false;
+            matchedPairs = 0;
+            turnsTaken = 0;
+            turnsLeftEl.textContent = MAX_TURNS;
+
+            cardDeck.forEach(cardValue => {
+                const card = document.createElement('div');
+                card.classList.add('card');
+                card.dataset.value = cardValue;
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-front">?</div>
+                        <div class="card-back">${cardValue}</div>
+                    </div>
+                `;
+                card.addEventListener('click', handleCardClick);
+                gameBoard.appendChild(card);
+            });
+        }
+
+        function handleCardClick(event) {
+            if (lockBoard) return;
+            const clickedCard = event.currentTarget;
+            if (clickedCard.classList.contains('is-flipped')) return;
+
+            clickedCard.classList.add('is-flipped');
+
+            if (!firstCard) {
+                firstCard = clickedCard;
+            } else {
+                secondCard = clickedCard;
+                turnsTaken++;
+                turnsLeftEl.textContent = MAX_TURNS - turnsTaken;
+                checkMatch();
             }
+        }
+
+        function checkMatch() {
+            const isMatch = firstCard.dataset.value === secondCard.dataset.value;
+            if (isMatch) {
+                matchedPairs++;
+                disableCards();
+            } else {
+                unflipCards();
+            }
+
+            if (matchedPairs === cards.length) {
+                winGame();
+            } else if (turnsTaken >= MAX_TURNS) {
+                loseGame();
+            }
+        }
+
+        function disableCards() {
+            firstCard.removeEventListener('click', handleCardClick);
+            secondCard.removeEventListener('click', handleCardClick);
+            resetBoard();
+        }
+
+        function unflipCards() {
+            lockBoard = true;
+            setTimeout(() => {
+                firstCard.classList.remove('is-flipped');
+                secondCard.classList.remove('is-flipped');
+                resetBoard();
+            }, 1500);
+        }
+
+        function resetBoard() {
+            [firstCard, secondCard, lockBoard] = [null, null, false];
+        }
+
+        function winGame() {
+            alert("You have proven your patience. The Keyholder grants you this one reprieve.");
+            
+            // Stop the timer on win
+            clearInterval(interval);
+            const currentTimer = JSON.parse(localStorage.getItem('chastity_current_timer'));
+            if (currentTimer) {
+                const finalDurationMs = new Date().getTime() - currentTimer.startTime;
+                updateTimerDisplay(finalDurationMs);
+            }
+            
+            hideGameScreen();
+            resetButton.style.display = 'block';
+            unlockButton.style.display = 'none';
+        }
+
+        function loseGame() {
+            alert("Your impatience is... disappointing. You have failed the test. The game resets, and you must try again.");
+            initGame();
         }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
-            displayQuote();
+            startQuoteFlipper();
+            loadData();
         });
     </script>
 </body>
