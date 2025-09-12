@@ -183,6 +183,7 @@
             margin: 20px auto;
         }
 
+        /* NEW CARD ANIMATION STYLES */
         .card {
             background-color: #555;
             border-radius: 8px;
@@ -192,9 +193,14 @@
             justify-content: center;
             cursor: pointer;
             font-size: 2.5em;
-            transition: transform 0.3s ease-in-out;
+            transition: transform 0.5s ease-in-out; /* Slower and smoother transition */
             transform-style: preserve-3d;
             position: relative;
+            will-change: transform;
+        }
+
+        .card:hover {
+            transform: scale(1.05); /* Slightly bigger on hover */
         }
 
         .card-inner {
@@ -202,7 +208,7 @@
             width: 100%;
             height: 100%;
             text-align: center;
-            transition: transform 0.6s;
+            transition: transform 0.6s cubic-bezier(0.45, 0, 0.55, 1); /* More dynamic easing */
             transform-style: preserve-3d;
         }
         
@@ -320,6 +326,9 @@
             <div class="history-list">
                 <h2>Past Sessions</h2>
                 <div id="history-container">No past sessions to display.</div>
+            </div>
+            <div style="margin-top: 2rem;">
+              <button class="danger" onclick="resetApp()">Reset All Data</button>
             </div>
         </div>
         
@@ -531,6 +540,23 @@
                 updateTimerDisplay(durationMs);
 
                 const currentTimer = JSON.parse(localStorage.getItem('chastity_current_timer'));
+                
+                // Check for penalty first, as it takes precedence
+                const penaltyEndTime = JSON.parse(localStorage.getItem('chastity_penalty_end'));
+                if (penaltyEndTime) {
+                    const penaltyTimeLeft = penaltyEndTime - now;
+                    if (penaltyTimeLeft > 0) {
+                        const minutes = Math.floor((penaltyTimeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                        const seconds = Math.floor((penaltyTimeLeft % (1000 * 60)) / 1000);
+                        timerMessageEl.textContent = `Penalty: Cannot request unlock for ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s.`;
+                        unlockButton.style.display = 'none';
+                        return; // Penalty is active, so we don't need to check anything else
+                    } else {
+                        localStorage.removeItem('chastity_penalty_end'); // Penalty expired, remove it and continue to normal checks
+                    }
+                }
+
+                // If no active penalty, check for minimum time
                 if (currentTimer.isMinimum && currentTimer.minEndTime) {
                     const minTimeLeft = currentTimer.minEndTime - now;
                     if (minTimeLeft > 0) {
@@ -545,6 +571,8 @@
                         unlockButton.style.display = 'block';
                     }
                 } else {
+                    // Default state: No penalty, no minimum time requirement
+                    timerMessageEl.textContent = '';
                     unlockButton.style.display = 'block';
                 }
             }, 1000);
@@ -585,6 +613,7 @@
 
             localStorage.setItem('chastity_current_timer', JSON.stringify(currentTimer));
             localStorage.removeItem('chastity_pending_pin');
+            localStorage.removeItem('chastity_penalty_end'); // Clear any old penalty
             loadData();
         }
 
@@ -605,11 +634,20 @@
                 // Display the PIN and set up a new one for the next session
                 displayPin(currentTimer.pin);
                 localStorage.removeItem('chastity_current_timer');
+                localStorage.removeItem('chastity_penalty_end'); // Clear penalty on successful reset
             }
             loadData();
         }
         
         function requestUnlock() {
+            const penaltyEndTime = JSON.parse(localStorage.getItem('chastity_penalty_end'));
+            if (penaltyEndTime && new Date().getTime() < penaltyEndTime) {
+                const penaltyTimeLeft = penaltyEndTime - new Date().getTime();
+                const minutes = Math.ceil(penaltyTimeLeft / (1000 * 60));
+                alert(`You are still in a penalty period. Please wait for approximately ${minutes} more minute(s).`);
+                return;
+            }
+
             timerScreen.style.display = 'none';
             gameScreen.style.display = 'block';
             initGame();
@@ -717,8 +755,15 @@
         }
 
         function loseGame() {
-            alert("Your impatience is... disappointing. You have failed the test. The game resets, and you must try again.");
-            initGame();
+            alert("Your impatience is... disappointing. You have failed the test. You are now penalised and cannot request an unlock for 30 minutes.");
+            
+            // Set a 30-minute penalty from the current time
+            const penaltyDuration = 30 * 60 * 1000;
+            const penaltyEndTime = new Date().getTime() + penaltyDuration;
+            localStorage.setItem('chastity_penalty_end', JSON.stringify(penaltyEndTime));
+
+            hideGameScreen();
+            // No need to re-initialize the game here, as the user is sent back to the timer.
         }
 
         // Initialize on page load
