@@ -5,6 +5,8 @@ const elements = {
     timer: document.getElementById('timer'),
     timerMessage: document.getElementById('timer-message'),
     lockdownTimer: document.getElementById('lockdown-timer'),
+    doubledPenaltyTimer: document.getElementById('doubled-penalty-timer'),
+    startDate: document.getElementById('startDate'),
     startDate: document.getElementById('startDate'),
     timerOptions: document.getElementById('timer-options'),
     startButton: document.getElementById('start-button'),
@@ -179,4 +181,8 @@ export function showAchievement(achievement) {
     setTimeout(() => {
         toast.classList.remove('show');
     }, 5000);
+}
+
+export function updateDoubledPenaltyTimer(message = '') {
+    elements.doubledPenaltyTimer.textContent = message;
 }
