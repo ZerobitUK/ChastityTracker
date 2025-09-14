@@ -176,7 +176,6 @@ button.danger {
     margin: 20px auto;
 }
 
-/* Updated card styles to remove animation */
 .card {
     background-color: #555;
     border-radius: 8px;
@@ -241,4 +240,29 @@ textarea {
 }
 .timer-type-selector input[type="radio"] {
     margin-right: 0.5rem;
+}
+
+/* Tic-Tac-Toe specific styles */
+.tictactoe-board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    width: 300px;
+    height: 300px;
+    margin: 20px auto;
+    background-color: #444;
+}
+
+.tictactoe-cell {
+    background-color: #292929;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3em;
+    cursor: pointer;
+    color: var(--primary-color);
+}
+
+.tictactoe-cell:hover {
+    background-color: #3a3a3a;
 }
