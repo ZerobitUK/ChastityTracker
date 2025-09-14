@@ -266,3 +266,39 @@ textarea {
 .tictactoe-cell:hover {
     background-color: #3a3a3a;
 }
+
+/* Simon Says specific styles */
+.simonsays-board {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 20px;
+    width: 300px;
+    height: 300px;
+    margin: 20px auto;
+}
+
+.simon-button {
+    border-radius: 10%;
+    cursor: pointer;
+    transition: filter 0.2s ease-in-out;
+}
+
+.simon-button[data-color="red"] { background-color: #d10000; }
+.simon-button[data-color="green"] { background-color: #00a800; }
+.simon-button[data-color="blue"] { background-color: #0050ff; }
+.simon-button[data-color="yellow"] { background-color: #e6e600; }
+
+.simon-button.active {
+    filter: brightness(1.5);
+}
+
+.simon-button.disabled {
+    pointer-events: none;
+}
+
+#simon-status {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-top: 1rem;
+}
