@@ -81,9 +81,14 @@ function resetBoard() {
 }
 
 function checkGameEnd() {
+    // First, check for a win. If the board is clear, it's a win.
     if (state.matchedPairs === CARDS.length) {
         onWin();
-    } else if (state.turnsTaken >= MAX_TURNS) {
+        return; // Stop the function here to ensure the win is registered.
+    }
+
+    // Only if the player has NOT won, check if they have run out of turns.
+    if (state.turnsTaken >= MAX_TURNS) {
         onLose();
     }
 }
