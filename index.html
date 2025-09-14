@@ -18,6 +18,12 @@
         </div>
     </div>
 
+    <div id="achievement-toast" class="achievement-toast">
+        <h3>🏆 Achievement Unlocked!</h3>
+        <p id="achievement-name"></p>
+        <small id="achievement-desc"></small>
+    </div>
+
     <div class="quote-banner" id="quote-banner"></div>
 
     <div class="container" id="main-content">
@@ -27,7 +33,6 @@
             <div id="timer-message"></div>
             <div class="date-info">
                 <p>Lock-up Initiated: <span id="startDate">N/A</span></p>
-                <p>Release Anticipated: <span id="endDate">N/A</span></p>
             </div>
             
             <div class="timer-type-selector" id="timer-options">
@@ -74,22 +79,33 @@
             <button id="back-to-timer-btn" style="margin-top: 1rem; background-color: #555; color: #e0e0e0;">Back to Timer</button>
         </div>
         
-<div id="game-screen" class="screen">
-    <h2 id="game-title"></h2>
-    <p id="game-description"></p>
-    <div class="turns-counter" id="turns-counter" style="display: none;">Turns left: <span id="turns-left"></span></div>
+        <div id="wheel-screen" class="screen">
+            <h2>Wheel of Fortune</h2>
+            <p>Spin the wheel to determine your fate.</p>
+            <div class="wheel-container">
+                <div class="wheel" id="wheel"></div>
+                <div class="wheel-pointer"></div>
+            </div>
+            <button id="spin-button">Spin</button>
+            <button id="wheel-back-btn" style="margin-top: 1rem; background-color: #555; color: #e0e0e0; display: none;">Continue</button>
+        </div>
 
-    <div id="memory-game-container" class="memory-game-board game-container" style="display: none;"></div>
-    <div id="guessthenumber-game-container" class="game-container" style="display: none;">
-        <p id="guess-prompt"></p>
-        <p id="guess-message"></p>
-        <input type="number" id="guess-input" placeholder="Enter your guess">
-        <button id="guess-submit-btn">Submit Guess</button>
-    </div>
-    <p id="simon-status" style="display:none;"></p>
+        <div id="game-screen" class="screen">
+            <h2 id="game-title"></h2>
+            <p id="game-description"></p>
+            <div class="turns-counter" id="turns-counter" style="display: none;">Turns left: <span id="turns-left"></span></div>
 
-    <button id="back-to-selection-btn" style="margin-top: 1.5rem; background-color: #555; color: #e0e0e0;">Back to Selection</button>
-</div>
+            <div id="memory-game-container" class="memory-game-board game-container" style="display: none;"></div>
+            
+            <div id="tictactoe-game-container" class="tictactoe-board game-container" style="display: none;"></div>
+
+            <div id="guessthenumber-game-container" class="game-container" style="display: none;">
+                <p id="guess-prompt"></p>
+                <p id="guess-message"></p>
+                <input type="number" id="guess-input" placeholder="Enter your guess">
+                <button id="guess-submit-btn">Submit Guess</button>
+            </div>
+
             <div id="simonsays-game-container" class="simonsays-board game-container" style="display:none;">
                 <div class="simon-button" data-color="red"></div>
                 <div class="simon-button" data-color="green"></div>
@@ -97,6 +113,8 @@
                 <div class="simon-button" data-color="yellow"></div>
             </div>
             <p id="simon-status" style="display:none;"></p>
+            
+            <button id="back-to-selection-btn" style="margin-top: 1.5rem; background-color: #555; color: #e0e0e0;">Back to Selection</button>
         </div>
     </div>
 
