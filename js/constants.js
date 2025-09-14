@@ -29,17 +29,3 @@ export const RANDOM_EVENTS = [
     { name: 'Lockdown!', description: 'A sudden lockdown has occurred! The unlock button is disabled for the next hour.', duration: 60 * 60 * 1000 },
     { name: 'Moment of Mercy', description: 'The Keyholder feels generous. For the next hour, any penalty time from losing a game is halved.', effect: 'halfPenalty', duration: 60 * 60 * 1000 }
 ];
-
-// Wheel of Fortune
-export const WHEEL_OUTCOMES = [
-    { text: '+1 Hour', type: 'addTime', value: 60 * 60 * 1000 },
-    { text: 'Play Game', type: 'play' },
-    { text: '+15 Mins', type: 'addTime', value: 15 * 60 * 1000 },
-    { text: 'Double Penalty on Loss', type: 'modifier', effect: 'doublePenalty' },
-    { text: 'Lockdown!', type: 'lockdown' },
-    { text: 'Double or Nothing', type: 'doubleOrNothing' },
-    { text: 'Free Unlock Attempt', type: 'play', free: true },
-    { text: 'Safe... for now', type: 'nothing' },
-    { text: '+3 Hours', type: 'addTime', value: 3 * 60 * 60 * 1000 },
-    { text: 'Play Game', type: 'play' }
-];
