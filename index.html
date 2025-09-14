@@ -4,14 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chastity Timer</title>
-    <!-- Link to your CSS file -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="modal-container" class="modal-container">
+        <div class="modal">
+            <h2 id="modal-title"></h2>
+            <p id="modal-message"></p>
+            <div id="modal-actions">
+                <button id="modal-confirm-btn">Confirm</button>
+                <button id="modal-close-btn">Close</button>
+            </div>
+        </div>
+    </div>
+
     <div class="quote-banner" id="quote-banner"></div>
 
     <div class="container" id="main-content">
-        <div id="timer-screen">
+        <div id="timer-screen" class="screen active">
             <h1>Time Locked</h1>
             <div id="timer">00d : 00h : 00m : 00s</div>
             <div id="timer-message"></div>
@@ -33,9 +43,9 @@
             </div>
 
             <div class="actions">
-                <button class="start" id="start-button" onclick="startTimer()">Begin Lock-up</button>
-                <button class="request-unlock" id="unlock-button" style="display:none;" onclick="showGameSelection()">Attempt Unlock</button>
-                <button class="reset" id="reset-button" style="display:none;" onclick="resetTimer()">End Session</button>
+                <button class="start" id="start-button">Begin Lock-up</button>
+                <button class="request-unlock" id="unlock-button" style="display:none;">Attempt Unlock</button>
+                <button class="reset" id="reset-button" style="display:none;">End Session</button>
             </div>
             
             <div class="pin-display-area" id="pin-display">
@@ -48,42 +58,36 @@
                 <div id="history-container">No past sessions to display.</div>
             </div>
             <div style="margin-top: 2rem;">
-              <button class="danger" onclick="resetApp()">Reset All Data</button>
+              <button class="danger" id="reset-app-button">Reset All Data</button>
             </div>
         </div>
 
-        <div id="game-selection-screen" style="display:none;">
+        <div id="game-selection-screen" class="screen">
             <h2>Choose Your Test</h2>
             <p>Prove your devotion by choosing a game to earn your release.</p>
-            <div class="actions">
-                <button onclick="startGame('memory')">The Keyholder's Memory</button>
-                <button onclick="startGame('tictactoe')">Tic-Tac-Toe</button>
-                <button onclick="startGame('guessthenumber')">Guess the Number</button>
-                <button onclick="startGame('simonsays')">Simon Says</button>
+            <div class="actions" id="game-selection-buttons">
+                <button data-game="memory">The Keyholder's Memory</button>
+                <button data-game="tictactoe">Tic-Tac-Toe</button>
+                <button data-game="guessthenumber">Guess the Number</button>
+                <button data-game="simonsays">Simon Says</button>
             </div>
+            <button id="back-to-timer-btn" style="margin-top: 1rem; background-color: #555; color: #e0e0e0;">Back to Timer</button>
         </div>
         
-        <div id="game-screen" style="display:none;">
+        <div id="game-screen" class="screen">
             <h2 id="game-title"></h2>
             <p id="game-description"></p>
             <div class="turns-counter" id="turns-counter" style="display: none;">Turns left: <span id="turns-left"></span></div>
 
-            <!-- Memory Game -->
-            <div id="memory-game-container" class="memory-game-board" style="display: none;"></div>
-
-            <!-- Tic-Tac-Toe -->
-            <div id="tictactoe-game-container" class="tictactoe-board" style="display: none;"></div>
-            
-            <!-- Guess the Number -->
-            <div id="guessthenumber-game-container" style="display: none;">
+            <div id="memory-game-container" class="memory-game-board game-container" style="display: none;"></div>
+            <div id="tictactoe-game-container" class="tictactoe-board game-container" style="display: none;"></div>
+            <div id="guessthenumber-game-container" class="game-container" style="display: none;">
                 <p id="guess-prompt"></p>
                 <p id="guess-message"></p>
                 <input type="number" id="guess-input" placeholder="Enter your guess">
-                <button onclick="checkGuess()">Submit Guess</button>
+                <button id="guess-submit-btn">Submit Guess</button>
             </div>
-
-            <!-- Simon Says -->
-            <div id="simonsays-game-container" class="simonsays-board" style="display:none;">
+            <div id="simonsays-game-container" class="simonsays-board game-container" style="display:none;">
                 <div class="simon-button" data-color="red"></div>
                 <div class="simon-button" data-color="green"></div>
                 <div class="simon-button" data-color="blue"></div>
@@ -93,7 +97,6 @@
         </div>
     </div>
 
-    <!-- Link to your JavaScript file -->
-    <script src="script.js"></script>
+    <script src="js/main.js" type="module"></script>
 </body>
 </html>
