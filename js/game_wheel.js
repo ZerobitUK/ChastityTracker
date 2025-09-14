@@ -14,7 +14,6 @@ function setupWheel() {
         const segment = document.createElement('div');
         segment.classList.add('wheel-segment');
         segment.textContent = outcome.text;
-        // The rotation places the segment's center line at the correct angle
         segment.style.transform = `rotate(${segmentAngle * index + segmentAngle / 2}deg)`;
         wheelEl.appendChild(segment);
     });
@@ -23,32 +22,22 @@ function setupWheel() {
 function spin() {
     spinButton.disabled = true;
     backButton.style.display = 'none';
-
-    // 1. Determine the winning segment
     const winningSegmentIndex = Math.floor(Math.random() * segmentCount);
-    
-    // 2. Correctly calculate the final angle for the wheel to stop at.
-    // This formula ensures the pointer (at the top) lines up with the middle of the winning segment.
     const rotation = (360 - (winningSegmentIndex * segmentAngle)) - (segmentAngle / 2);
-
-    // 3. Add multiple full rotations for a good spinning effect
     const fullSpins = 5 + Math.floor(Math.random() * 3);
     const finalAngle = rotation + (360 * fullSpins);
-    
     wheelEl.style.transform = `rotate(${finalAngle}deg)`;
 
-    // 4. Wait for the animation to finish
     setTimeout(() => {
         const winningOutcome = WHEEL_OUTCOMES[winningSegmentIndex];
         backButton.style.display = 'block';
         onSpinComplete(winningOutcome);
-    }, 5500); // This must match the CSS transition duration
+    }, 5500);
 }
 
 export function initWheel(spinCallback) {
     onSpinComplete = spinCallback;
     setupWheel();
-    
     spinButton.disabled = false;
     backButton.style.display = 'none';
     wheelEl.style.transition = 'none';
