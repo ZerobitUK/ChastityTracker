@@ -345,7 +345,6 @@ function startGame(gameType) {
     document.getElementById('guess-prompt').style.display = 'none';
     document.querySelector('#guessthenumber-game-container button').style.display = 'none';
 
-    // Clear saved game state for a clean start
     localStorage.removeItem('chastity_game_state');
 
     if (gameType === 'memory') {
@@ -607,20 +606,80 @@ function handleTicTacToeClick(event) {
         return;
     }
 
-    setTimeout(() => {
-        const emptyCells = tictactoeBoard.map((val, i) => val === '' ? i : null).filter(val => val !== null);
-        const randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-        tictactoeBoard[randomIndex] = aiSymbol;
-        tictactoeGameContainer.children[randomIndex].textContent = aiSymbol;
-        saveGame('tictactoe');
+    setTimeout(aiMove, 500);
+}
 
+function aiMove() {
+    // 1. Check if AI can win
+    let bestMove = findBestMove(aiSymbol);
+    if (bestMove !== -1) {
+        makeMove(bestMove, aiSymbol);
         if (checkTicTacToeWin(aiSymbol)) {
             setTimeout(() => {
                 alert("The Keyholder has bested you. You have failed the test. You are now penalised.");
                 loseGame();
             }, 100);
         }
-    }, 500);
+        return;
+    }
+    
+    // 2. Check if player can be blocked
+    bestMove = findBestMove(playerSymbol);
+    if (bestMove !== -1) {
+        makeMove(bestMove, aiSymbol);
+        return;
+    }
+
+    // 3. Take center
+    if (tictactoeBoard[4] === '') {
+        makeMove(4, aiSymbol);
+        return;
+    }
+
+    // 4. Take a corner
+    const corners = [0, 2, 6, 8];
+    const openCorners = corners.filter(index => tictactoeBoard[index] === '');
+    if (openCorners.length > 0) {
+        const randomCorner = openCorners[Math.floor(Math.random() * openCorners.length)];
+        makeMove(randomCorner, aiSymbol);
+        return;
+    }
+
+    // 5. Take a side
+    const sides = [1, 3, 5, 7];
+    const openSides = sides.filter(index => tictactoeBoard[index] === '');
+    if (openSides.length > 0) {
+        const randomSide = openSides[Math.floor(Math.random() * openSides.length)];
+        makeMove(randomSide, aiSymbol);
+    }
+}
+
+function findBestMove(symbol) {
+    const winConditions = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
+    ];
+
+    for (const condition of winConditions) {
+        const [a, b, c] = condition;
+        if (tictactoeBoard[a] === symbol && tictactoeBoard[b] === symbol && tictactoeBoard[c] === '') {
+            return c;
+        }
+        if (tictactoeBoard[a] === symbol && tictactoeBoard[c] === symbol && tictactoeBoard[b] === '') {
+            return b;
+        }
+        if (tictactoeBoard[b] === symbol && tictactoeBoard[c] === symbol && tictactoeBoard[a] === '') {
+            return a;
+        }
+    }
+    return -1;
+}
+
+function makeMove(index, symbol) {
+    tictactoeBoard[index] = symbol;
+    tictactoeGameContainer.children[index].textContent = symbol;
+    saveGame('tictactoe');
 }
 
 function checkTicTacToeWin(symbol) {
