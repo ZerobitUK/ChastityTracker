@@ -45,8 +45,10 @@ export const WHEEL_OUTCOMES = [
     { text: 'Play Game', type: 'play' },
     { text: '-15 Mins', type: 'subtractTime', value: 15 * 60 * 1000 },
     { text: 'Double Penalty on Loss', type: 'modifier', effect: 'doublePenalty' },
+    { text: 'Lockdown!', type: 'lockdown' }, // <-- ADD THIS LINE
     { text: 'Free Unlock Attempt', type: 'play', free: true },
     { text: 'Safe... for now', type: 'nothing' },
     { text: '+3 Hours', type: 'addTime', value: 3 * 60 * 60 * 1000 },
     { text: 'Play Game', type: 'play' }
 ];
+
