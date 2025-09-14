@@ -237,3 +237,69 @@ function saveComment(index, text) {
 function deleteHistoryItem(index) {
      ui.showModal( "Delete Session?", "Are you sure you want to delete this history item permanently?", true, () => {
         state.history.splice(index, 1);
+        saveHistory();
+        ui.renderHistory(state.history, saveComment, deleteHistoryItem);
+    });
+}
+
+function startQuoteFlipper() {
+    const quoteBanner = document.getElementById('quote-banner');
+    if (!quoteBanner) return;
+    const initialIndex = Math.floor(Math.random() * KINKY_QUOTES.length);
+    quoteBanner.textContent = KINKY_QUOTES[initialIndex];
+    setInterval(() => {
+        quoteBanner.style.opacity = '0';
+        setTimeout(() => {
+            const randomIndex = Math.floor(Math.random() * KINKY_QUOTES.length);
+            quoteBanner.textContent = KINKY_QUOTES[randomIndex];
+            quoteBanner.style.opacity = '1';
+        }, 1000);
+    }, QUOTE_FLIP_INTERVAL_MS);
+}
+
+function setupEventListeners() {
+    // THIS LINE WAS THE PROBLEM - CORRECTED 'start-buttonn' to 'start-button'
+    document.getElementById('start-button').addEventListener('click', startNewTimer);
+    document.getElementById('unlock-button').addEventListener('click', attemptUnlock);
+    document.getElementById('reset-button').addEventListener('click', endSession);
+    document.getElementById('reset-app-button').addEventListener('click', resetApp);
+    document.getElementById('back-to-timer-btn').addEventListener('click', () => ui.switchScreen('timer-screen'));
+    document.getElementById('back-to-selection-btn').addEventListener('click', () => ui.switchScreen('game-selection-screen'));
+    document.getElementById('minefield-back-btn').addEventListener('click', () => ui.switchScreen('timer-screen'));
+    document.getElementById('game-selection-buttons').addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            const gameType = e.target.dataset.game;
+            startGame(gameType);
+        }
+    });
+}
+
+function initializeApp() {
+    loadState();
+    if (!state.currentTimer) {
+        localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+        localStorage.removeItem('chastity_selected_game');
+    }
+    const pendingSelectedGame = getLocalStorage('chastity_selected_game');
+    const savedGameState = getLocalStorage(STORAGE_KEY.GAME_STATE);
+    if (pendingSelectedGame) {
+        startGame(pendingSelectedGame);
+    } else if (state.currentTimer && savedGameState?.won) {
+        const endTime = Date.now();
+        ui.updateTimerDisplay(endTime - state.currentTimer.startTime);
+        ui.showFinishedState(state.currentTimer.pin, endTime);
+    } else if (state.currentTimer) {
+        ui.renderUIForActiveTimer(state.currentTimer.startTime);
+        timer.startUpdateInterval();
+    } else {
+        ui.renderUIForNoTimer(state.pendingPin);
+    }
+    ui.renderHistory(state.history, saveComment, deleteHistoryItem);
+    setupEventListeners();
+    startQuoteFlipper();
+    if (!pendingSelectedGame) {
+        ui.switchScreen('timer-screen');
+    }
+}
+
+initializeApp();
