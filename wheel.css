@@ -41,12 +41,27 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-left: 20px;
+    /* Removed padding-left from here as it interferes with rotation */
     box-sizing: border-box;
     font-weight: bold;
     color: var(--text-color);
+    text-align: left; /* Align text within its container */
 }
 
 .wheel-segment:nth-child(odd) {
     background-color: #333;
+}
+
+/* New CSS to properly align and rotate text within segments */
+.wheel-segment-content {
+    position: absolute;
+    top: 50%; /* Position near the middle of the segment */
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(0deg); /* Initial rotation, will be overwritten by JS */
+    width: 100%; /* Take full width to allow text alignment */
+    text-align: left; /* Align text within its content box */
+    padding-left: 20px; /* Add padding here for better spacing */
+    box-sizing: border-box;
+    white-space: nowrap; /* Prevent text from wrapping */
+    font-size: 0.9em; /* Adjust font size if needed */
 }
