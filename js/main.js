@@ -129,6 +129,7 @@ function winGame() {
 }
 
 function loseGame() {
+    // CRITICAL: Clear the saved game state
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
 
     // Log the losing game attempt with the penalty
@@ -141,9 +142,10 @@ function loseGame() {
     totalPenalty += PENALTY_DURATION_MS;
     setLocalStorage(STORAGE_KEY.TOTAL_PENALTY, totalPenalty);
 
+    // This modal now correctly switches the screen back after it's closed
     ui.showModal("Failure", "A 30-minute penalty has been applied.", false, () => {
         ui.switchScreen('timer-screen');
-        timer.startUpdateInterval(); 
+        timer.startUpdateInterval(); // Restart the timer to show the penalty countdown
     });
 }
 
