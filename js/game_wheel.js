@@ -39,6 +39,20 @@ function spin() {
 export function initWheel(spinCallback) {
     onSpinComplete = spinCallback;
     setupWheel();
-    spinButton.removeEventListener('click', spin); // Prevent multiple listeners
-    spinButton.addEventListener('click', spin);
+    
+    // Crucially, we re-enable the button and reset the wheel's rotation
+    spinButton.disabled = false;
+    wheelEl.style.transition = 'none'; // Temporarily disable transition
+    wheelEl.style.transform = 'rotate(0deg)'; // Reset rotation
+    setTimeout(() => { // Re-enable transition after a brief moment
+        wheelEl.style.transition = 'transform 5s cubic-bezier(0.25, 1, 0.5, 1)';
+    }, 50);
+
+    // Re-attach the event listener using a named function to prevent duplicates
+    const spinHandler = () => {
+        spin();
+        spinButton.removeEventListener('click', spinHandler); // Self-removing listener
+    };
+    spinButton.removeEventListener('click', spin); // Clean up any old listeners just in case
+    spinButton.addEventListener('click', spinHandler);
 }
