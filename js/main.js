@@ -95,9 +95,11 @@ function startGame(gameType) {
     ui.switchScreen('game-screen');
     document.querySelectorAll('.game-container').forEach(c => c.style.display = 'none');
 
-    // Here you would add cases for your other games
+    const savedGameState = getLocalStorage(STORAGE_KEY.GAME_STATE);
+
     if (gameType === 'memory') {
-        initMemoryGame(winGame, loseGame);
+        // Pass the saved state to the game initializer
+        initMemoryGame(winGame, loseGame, savedGameState);
     } else {
         ui.showModal("Game Not Implemented", "This game is not ready yet.");
         ui.switchScreen('game-selection-screen');
@@ -106,20 +108,23 @@ function startGame(gameType) {
 
 function winGame() {
     timer.stopUpdateInterval();
-    setLocalStorage(STORAGE_KEY.GAME_STATE, { won: true });
+    // CRITICAL: Clear the saved game state
+    localStorage.removeItem(STORAGE_KEY.GAME_STATE);
     
     const endTime = Date.now();
     const duration = endTime - state.currentTimer.startTime;
     ui.updateTimerDisplay(duration);
     ui.showFinishedState(state.currentTimer.pin, endTime);
     
-    // This now correctly switches screens after the modal is closed.
     ui.showModal("Success!", "You have proven your patience. You may now end your session.", false, () => {
         ui.switchScreen('timer-screen');
     });
 }
 
 function loseGame() {
+    // CRITICAL: Clear the saved game state
+    localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+
     const penaltyEndTime = Date.now() + PENALTY_DURATION_MS;
     setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
 
@@ -127,10 +132,8 @@ function loseGame() {
     totalPenalty += PENALTY_DURATION_MS;
     setLocalStorage(STORAGE_KEY.TOTAL_PENALTY, totalPenalty);
 
-    // This now correctly switches screens after the modal is closed.
     ui.showModal("Failure", "You have failed the test. A 30-minute penalty has been applied.", false, () => {
         ui.switchScreen('timer-screen');
-        // We restart the timer interval to show the penalty countdown
         timer.startUpdateInterval(); 
     });
 }
@@ -149,18 +152,20 @@ function endSession() {
         penaltyTime: totalPenalty
     };
 
-    state.history.unshift(historyItem); // Add to the beginning of the array
+    state.history.unshift(historyItem);
     saveHistory();
 
     state.currentTimer = null;
     localStorage.removeItem(STORAGE_KEY.CURRENT_TIMER);
     localStorage.removeItem(STORAGE_KEY.TOTAL_PENALTY);
     localStorage.removeItem(STORAGE_KEY.PENALTY_END);
+    // CRITICAL: Clear any lingering game state
+    localStorage.removeItem(STORAGE_KEY.GAME_STATE);
 
     state.pendingPin = generatePin();
     setLocalStorage(STORAGE_KEY.PENDING_PIN, state.pendingPin);
 
-    loadState(); // Reload state to refresh UI correctly
+    loadState();
     ui.renderUIForNoTimer(state.pendingPin);
     ui.renderHistory(state.history, saveComment, deleteHistoryItem);
     ui.switchScreen('timer-screen');
