@@ -51,10 +51,12 @@ export function switchScreen(screenId) {
 }
 
 export function updateTimerDisplay(durationMs) {
-    const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
+    // Safeguard to prevent negative display
+    const safeDuration = Math.max(0, durationMs);
+    const days = Math.floor(safeDuration / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((safeDuration % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((safeDuration % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((safeDuration % (1000 * 60)) / 1000);
     elements.timer.textContent = `${String(days).padStart(2, '0')}d : ${String(hours).padStart(2, '0')}h : ${String(minutes).padStart(2, '0')}m : ${String(seconds).padStart(2, '0')}s`;
 }
 
