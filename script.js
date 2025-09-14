@@ -130,6 +130,14 @@ function loadData() {
         unlockButton.style.display = 'none';
         resetButton.style.display = 'none';
     }
+
+    // Check for an active game session and load it
+    const savedGame = localStorage.getItem('chastity_game_state');
+    if (savedGame) {
+        gameScreen.style.display = 'block';
+        timerScreen.style.display = 'none';
+        loadGame();
+    }
 }
 
 function renderHistory(history) {
@@ -275,7 +283,6 @@ function resetTimer() {
     if (currentTimer && currentTimer.startTime) {
         const endTime = new Date().getTime();
         
-        // Get total penalty time
         const totalPenaltyTime = JSON.parse(localStorage.getItem('chastity_total_penalty_time')) || 0;
 
         const newHistoryItem = { 
@@ -292,7 +299,7 @@ function resetTimer() {
         displayPin(currentTimer.pin);
         localStorage.removeItem('chastity_current_timer');
         localStorage.removeItem('chastity_penalty_end');
-        localStorage.removeItem('chastity_total_penalty_time'); // Clear the total penalty for the new session
+        localStorage.removeItem('chastity_total_penalty_time');
     }
     loadData();
 }
@@ -311,7 +318,6 @@ function requestUnlock() {
     initGame();
 }
 
-// **New Functionality:** Prevents user from leaving the game screen once started
 function hideGameScreen() {
     alert("You cannot abandon the game once it has begun. You must finish.");
 }
@@ -337,6 +343,58 @@ function initGame() {
         card.addEventListener('click', handleCardClick);
         gameBoard.appendChild(card);
     });
+
+    // Save initial game state
+    saveGame();
+}
+
+function loadGame() {
+    const savedState = JSON.parse(localStorage.getItem('chastity_game_state'));
+    if (!savedState) return;
+
+    gameBoard.innerHTML = '';
+    turnsTaken = savedState.turnsTaken;
+    turnsLeftEl.textContent = MAX_TURNS - turnsTaken;
+    matchedPairs = savedState.matchedPairs;
+    
+    savedState.cardStates.forEach(state => {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        card.dataset.value = state.value;
+        
+        if (state.isFlipped) {
+            card.classList.add('is-flipped');
+            card.textContent = state.value;
+            if (state.isMatched) {
+                card.removeEventListener('click', handleCardClick);
+            } else {
+                card.addEventListener('click', handleCardClick);
+            }
+        } else {
+            card.textContent = '?';
+            card.addEventListener('click', handleCardClick);
+        }
+        
+        gameBoard.appendChild(card);
+    });
+}
+
+function saveGame() {
+    const cardStates = [];
+    document.querySelectorAll('.card').forEach(card => {
+        cardStates.push({
+            value: card.dataset.value,
+            isFlipped: card.classList.contains('is-flipped'),
+            isMatched: !card.hasEventListener('click')
+        });
+    });
+
+    const gameState = {
+        turnsTaken: turnsTaken,
+        matchedPairs: matchedPairs,
+        cardStates: cardStates
+    };
+    localStorage.setItem('chastity_game_state', JSON.stringify(gameState));
 }
 
 function handleCardClick(event) {
@@ -355,6 +413,8 @@ function handleCardClick(event) {
         turnsLeftEl.textContent = MAX_TURNS - turnsTaken;
         checkMatch();
     }
+    
+    saveGame();
 }
 
 function checkMatch() {
@@ -392,6 +452,7 @@ function unflipCards() {
 
 function resetBoard() {
     [firstCard, secondCard, lockBoard] = [null, null, false];
+    saveGame();
 }
 
 function winGame() {
@@ -404,11 +465,11 @@ function winGame() {
         updateTimerDisplay(finalDurationMs);
     }
     
-    // **Modified:** Transition to a state where the user can reset
     gameScreen.style.display = 'none';
     timerScreen.style.display = 'block';
     resetButton.style.display = 'block';
     unlockButton.style.display = 'none';
+    localStorage.removeItem('chastity_game_state');
 }
 
 function loseGame() {
@@ -417,7 +478,6 @@ function loseGame() {
     const penaltyDuration = 30 * 60 * 1000;
     const penaltyEndTime = new Date().getTime() + penaltyDuration;
     
-    // **New:** Add the 30-minute penalty to the total penalty time
     let totalPenaltyTime = JSON.parse(localStorage.getItem('chastity_total_penalty_time')) || 0;
     totalPenaltyTime += penaltyDuration;
     localStorage.setItem('chastity_total_penalty_time', JSON.stringify(totalPenaltyTime));
@@ -426,6 +486,7 @@ function loseGame() {
 
     gameScreen.style.display = 'none';
     timerScreen.style.display = 'block';
+    localStorage.removeItem('chastity_game_state');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
