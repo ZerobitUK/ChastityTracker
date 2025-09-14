@@ -1,0 +1,280 @@
+:root {
+    --primary-color: #bb86fc; /* Lighter purple for dark theme */
+    --secondary-color: #292929; /* Darker background for elements */
+    --text-color: #e0e0e0; /* Light text */
+    --background-color: #121212; /* Very dark background */
+    --banner-color: #3700b3; /* Darker purple for banner */
+    --button-start: #03dac6; /* Teal for start button */
+    --button-reset: #cf6679; /* Reddish for reset button */
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.container {
+    width: 90%;
+    max-width: 600px;
+    text-align: center;
+    padding: 2rem;
+    background-color: var(--secondary-color);
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    margin: 1rem 0;
+}
+
+.quote-banner {
+    width: 100%;
+    padding: 1rem;
+    background-color: var(--banner-color);
+    color: var(--text-color);
+    font-size: 1.1rem;
+    font-style: italic;
+    text-align: center;
+    border-bottom: 2px solid var(--primary-color);
+    margin-bottom: 2rem;
+    height: 3em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 1s ease-in-out;
+    opacity: 1; /* Banner is now visible immediately */
+}
+
+h1, h2 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+#timer {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+}
+
+.date-info {
+    font-size: 1rem;
+    color: var(--text-color);
+    margin-bottom: 2rem;
+}
+ 
+#timer-message {
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    color: var(--button-start);
+    font-weight: bold;
+}
+
+.actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+}
+
+button {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.1s;
+    color: var(--background-color); /* Dark text on buttons */
+    font-weight: bold;
+}
+
+button.start {
+    background-color: var(--button-start);
+}
+
+button.request-unlock {
+    background-color: var(--button-start);
+}
+
+button.reset {
+    background-color: var(--button-reset);
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+ 
+button.danger {
+    background-color: #444;
+    color: var(--button-reset);
+}
+
+.pin-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+#pinInput {
+    padding: 0.5rem;
+    font-size: 1rem;
+    border-radius: 5px;
+    border: 1px solid var(--primary-color);
+    background-color: #333;
+    color: var(--text-color);
+    width: 100%;
+    max-width: 200px;
+    text-align: center;
+}
+
+.history-list {
+    margin-top: 2rem;
+    text-align: left;
+    border-top: 1px solid #444;
+    padding-top: 1rem;
+}
+
+.history-item {
+    background-color: #222;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    color: var(--text-color);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+
+.history-item p {
+    margin: 5px 0;
+}
+
+.delete-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: none;
+    border: none;
+    color: var(--button-reset);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.game-board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 400px;
+    margin: 20px auto;
+}
+
+/* NEW CARD ANIMATION STYLES */
+.card {
+    background-color: #555;
+    border-radius: 8px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 2.5em;
+    transition: transform 0.5s ease-in-out; /* Slower and smoother transition */
+    transform-style: preserve-3d;
+    position: relative;
+    will-change: transform;
+}
+
+.card:hover {
+    transform: scale(1.05); /* Slightly bigger on hover */
+}
+
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s cubic-bezier(0.45, 0, 0.55, 1); /* More dynamic easing */
+    transform-style: preserve-3d;
+}
+ 
+.card.is-flipped .card-inner {
+    transform: rotateY(180deg);
+}
+
+.card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden; /* Safari */
+    backface-visibility: hidden;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-front {
+    background-color: #555;
+    color: #fff;
+}
+
+.card-back {
+    background-color: var(--primary-color);
+    color: white;
+    transform: rotateY(180deg);
+}
+.turns-counter {
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+textarea {
+    width: 95%;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 5px;
+    border: 1px solid #444;
+    background-color: #222;
+    color: var(--text-color);
+    font-family: inherit;
+}
+ 
+.pin-display-area {
+    margin-top: 20px;
+    padding: 20px;
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    display: none; /* Hidden by default */
+}
+.pin-display-area h2 {
+    margin-top: 0;
+}
+.pin-code {
+    font-size: 3em;
+    font-weight: bold;
+    color: #798075; /* This desaturated green is harder for the human brain to remember */
+    letter-spacing: 5px;
+}
+
+.timer-type-selector {
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+    text-align: left;
+}
+.timer-type-selector label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+.timer-type-selector input[type="radio"] {
+    margin-right: 0.5rem;
+}
