@@ -1,7 +1,7 @@
 import { KINKY_QUOTES, QUOTE_FLIP_INTERVAL_MS, STORAGE_KEY, PENALTY_DURATION_MS, ACHIEVEMENTS, RANDOM_EVENTS } from './constants.js';
 import * as ui from './ui.js';
 import * as timer from './timer.js';
-import { initMinefield } from './game_minefield.js';
+import { initWheel } from './game_wheel.js';
 import { initMemoryGame } from './game_memory.js';
 import { initTicTacToe } from './game_tictactoe.js';
 import { initGuessTheNumber } from './game_guess.js';
@@ -115,21 +115,21 @@ function attemptUnlock() {
         return;
     }
 
-    ui.switchScreen('minefield-screen');
-    initMinefield(handleMinefieldResult);
+    ui.switchScreen('wheel-screen');
+    initWheel(handleWheelResult);
 }
 
-function handleMinefieldResult(isMine) {
-    if (isMine) {
-        const minHours = 1;
-        const maxHours = 4;
-        const randomHours = Math.floor(Math.random() * (maxHours - minHours + 1)) + minHours;
-        const penaltyDurationMs = randomHours * 60 * 60 * 1000;
-        const penaltyEndTime = Date.now() + penaltyDurationMs;
+function handleWheelResult(outcome) {
+    if (outcome.type === 'penalty') {
+        const penaltyEndTime = Date.now() + outcome.duration;
         setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
-        ui.showModal("Mine Hit!", `You hit a mine! A ${randomHours}-hour penalty has been applied.`);
-    } else {
-        ui.showModal("Safe!", "You chose a safe tile. You may now attempt to play a game.");
+        ui.showModal("Penalty!", `The wheel has spoken. A ${outcome.duration / 60000}-minute penalty has been applied.`);
+    } else if (outcome.type === 'safe') {
+        ui.showModal("Safe!", "The wheel grants you safe passage. You may now attempt a game.");
+        setTimeout(() => ui.switchScreen('game-selection-screen'), 500);
+    } else { // Double or Nothing
+        ui.showModal("Double or Nothing!", "You've landed on Double or Nothing! You must win your next game, or the penalty will be doubled.");
+        // You can add more complex logic for this state if needed
         setTimeout(() => ui.switchScreen('game-selection-screen'), 500);
     }
 }
@@ -258,14 +258,13 @@ function startQuoteFlipper() {
 }
 
 function setupEventListeners() {
-    // THIS LINE WAS THE PROBLEM - CORRECTED 'start-buttonn' to 'start-button'
     document.getElementById('start-button').addEventListener('click', startNewTimer);
     document.getElementById('unlock-button').addEventListener('click', attemptUnlock);
     document.getElementById('reset-button').addEventListener('click', endSession);
     document.getElementById('reset-app-button').addEventListener('click', resetApp);
     document.getElementById('back-to-timer-btn').addEventListener('click', () => ui.switchScreen('timer-screen'));
     document.getElementById('back-to-selection-btn').addEventListener('click', () => ui.switchScreen('game-selection-screen'));
-    document.getElementById('minefield-back-btn').addEventListener('click', () => ui.switchScreen('timer-screen'));
+    document.getElementById('wheel-back-btn').addEventListener('click', () => ui.switchScreen('timer-screen'));
     document.getElementById('game-selection-buttons').addEventListener('click', (e) => {
         if (e.target.tagName === 'BUTTON') {
             const gameType = e.target.dataset.game;
