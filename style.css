@@ -146,51 +146,6 @@ textarea.history-comment { width: 95%; padding: 10px; margin-top: 10px; border-r
 .achievement-toast.show { bottom: 20px; }
 .achievement-toast h3 { margin: 0 0 5px 0; color: var(--background-color); }
 .achievement-toast p { margin: 0 0 5px 0; font-weight: bold; }
-.wheel-container {
-    position: relative;
-    width: 300px;
-    height: 300px;
-    margin: 2rem auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.wheel {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    background-image: conic-gradient( from 0deg, #8e44ad, #9b59b6, #3498db, #2ecc71, #f1c40f, #e67e22, #e74c3c, #c0392b, #8e44ad );
-    transition: transform 5s cubic-bezier(0.25, 1, 0.5, 1);
-    position: relative;
-    border: 5px solid #fff;
-}
-.wheel-segment {
-    position: absolute;
-    width: 50%;
-    height: 50%;
-    top: 0;
-    left: 50%;
-    transform-origin: 0% 100%;
-    color: white;
-    text-align: center;
-    font-weight: bold;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-left: 20px;
-}
-.wheel-pointer {
-    position: absolute;
-    top: -15px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 15px solid transparent;
-    border-right: 15px solid transparent;
-    border-top: 30px solid white;
-    z-index: 10;
-}
 .lockdown-timer {
     margin-bottom: 1rem;
     font-size: 1.2rem;
@@ -198,7 +153,32 @@ textarea.history-comment { width: 95%; padding: 10px; margin-top: 10px; border-r
     font-weight: bold;
     min-height: 1.5em;
 }
-
-.reset-app-button {
+.minefield-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 350px;
+    margin: 2rem auto;
+}
+.minefield-tile {
+    background-color: #555;
+    border-radius: 8px;
+    aspect-ratio: 1 / 1;
+    cursor: pointer;
+    transition: transform 0.3s, background-color 0.3s;
+    transform-style: preserve-3d;
+}
+.minefield-tile.is-flipped {
+    transform: rotateY(180deg);
+    cursor: default;
+}
+.minefield-tile.safe {
+    background-color: var(--button-start);
+}
+.minefield-tile.mine {
+    background-color: var(--button-reset);
+}
+#reset-app-button {
     display: none;
 }
