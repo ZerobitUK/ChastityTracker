@@ -319,7 +319,6 @@ function resetTimer() {
     loadData();
 }
 
-// Show the game selection screen
 function showGameSelection() {
     const penaltyEndTime = JSON.parse(localStorage.getItem('chastity_penalty_end'));
     if (penaltyEndTime && new Date().getTime() < penaltyEndTime) {
@@ -333,12 +332,10 @@ function showGameSelection() {
     gameSelectionScreen.style.display = 'block';
 }
 
-// Start the chosen game
 function startGame(gameType) {
     gameSelectionScreen.style.display = 'none';
     gameScreen.style.display = 'block';
 
-    // Reset all game containers and displays
     memoryGameContainer.style.display = 'none';
     tictactoeGameContainer.style.display = 'none';
     guessthenumberGameContainer.style.display = 'none';
@@ -348,6 +345,8 @@ function startGame(gameType) {
     document.getElementById('guess-prompt').style.display = 'none';
     document.querySelector('#guessthenumber-game-container button').style.display = 'none';
 
+    // Clear saved game state for a clean start
+    localStorage.removeItem('chastity_game_state');
 
     if (gameType === 'memory') {
         gameTitleEl.textContent = "The Keyholder's Memory";
@@ -372,7 +371,6 @@ function startGame(gameType) {
     }
 }
 
-// Prevents user from leaving the game screen once started
 function hideGameScreen() {
     alert("You cannot abandon the game once it has begun. You must finish.");
 }
@@ -586,10 +584,9 @@ function initTicTacToe() {
 function handleTicTacToeClick(event) {
     const index = event.target.dataset.index;
     if (tictactoeBoard[index] !== '') {
-        return; // Cell already taken
+        return;
     }
 
-    // Player move
     tictactoeBoard[index] = playerSymbol;
     event.target.textContent = playerSymbol;
     saveGame('tictactoe');
@@ -610,7 +607,6 @@ function handleTicTacToeClick(event) {
         return;
     }
 
-    // AI move
     setTimeout(() => {
         const emptyCells = tictactoeBoard.map((val, i) => val === '' ? i : null).filter(val => val !== null);
         const randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
@@ -629,9 +625,9 @@ function handleTicTacToeClick(event) {
 
 function checkTicTacToeWin(symbol) {
     const winConditions = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
-        [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
-        [0, 4, 8], [2, 4, 6]            // diagonals
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6]
     ];
     return winConditions.some(condition => {
         return condition.every(index => tictactoeBoard[index] === symbol);
@@ -641,7 +637,7 @@ function checkTicTacToeWin(symbol) {
 
 // --- Guess the Number Functions ---
 function initGuessTheNumber() {
-    secretNumber = Math.floor(Math.random() * 100) + 1; // Number between 1 and 100
+    secretNumber = Math.floor(Math.random() * 100) + 1;
     guessAttempts = 0;
     document.getElementById('guess-prompt').textContent = `Attempts left: ${MAX_ATTEMPTS}`;
     document.getElementById('guess-message').textContent = '';
