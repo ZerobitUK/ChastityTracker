@@ -187,34 +187,46 @@ function startGame(gameType) {
 function winGame() {
     timer.stopUpdateInterval();
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
-    localStorage.removeItem('chastity_selected_game');
+    localStorage.removeItem('chastity_selected_game'); // Clean up selected game
+    
     state.gameAttempts.push({ name: state.currentGame, result: 'Win', penalty: 0 });
     grantAchievement('winGame');
+
     const endTime = Date.now();
     ui.updateTimerDisplay(endTime - state.currentTimer.startTime);
     ui.showFinishedState(state.currentTimer.pin, endTime);
-    ui.showModal("Success!", "You may now end your session.", false, () => {
+    
+    // Show modal and ALWAYS return to the timer screen
+    ui.showModal("Success!", "You have proven your patience. You may now end your session.", false, () => {
         ui.switchScreen('timer-screen');
     });
 }
 
 function loseGame() {
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
-    localStorage.removeItem('chastity_selected_game');
+    localStorage.removeItem('chastity_selected_game'); // Clean up selected game
+
     let penalty = PENALTY_DURATION_MS;
     const wheelModifier = getLocalStorage('chastity_wheel_modifier');
     const activeEvent = getLocalStorage('chastity_active_event');
+
     if (wheelModifier === 'doublePenalty') penalty *= 2;
     if (activeEvent?.effect === 'halfPenalty' && Date.now() < activeEvent.expiry) penalty /= 2;
+    
     state.gameAttempts.push({ name: state.currentGame, result: 'Loss', penalty });
+    
     if (state.gameAttempts.filter(a => a.result === 'Loss').length >= 3) {
         grantAchievement('lose3');
     }
+
     const penaltyEndTime = Date.now() + penalty;
     setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
+
     let totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0;
     totalPenalty += penalty;
     setLocalStorage(STORAGE_KEY.TOTAL_PENALTY, totalPenalty);
+
+    // Show modal and ALWAYS return to the timer screen to suffer the penalty
     ui.showModal("Failure", `A penalty of ${penalty / 60000} minutes has been applied.`, false, () => {
         ui.switchScreen('timer-screen');
         timer.startUpdateInterval(); 
