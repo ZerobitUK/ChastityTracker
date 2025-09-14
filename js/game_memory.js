@@ -1,6 +1,6 @@
 import { STORAGE_KEY } from './constants.js';
 
-const CARDS = ['🔑', '🔒', '❤️', '🔥', '💧', '⌛', '💎', '⛓️'];
+const CARDS = ['🔑', '🔒', '❤️', '🔥', '💦', '⌛', '🍆', '⛓️'];
 const MAX_TURNS = 12;
 
 let firstCard, secondCard;
