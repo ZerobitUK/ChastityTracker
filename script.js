@@ -42,13 +42,14 @@ const pinDisplay = document.getElementById('pin-display');
 const pinCodeEl = document.getElementById('pin-code');
 const timerMessageEl = document.getElementById('timer-message');
 const timerOptionsEl = document.getElementById('timer-options');
+const mainContent = document.getElementById('main-content');
+const gameScreen = document.getElementById('game-screen');
 
 let interval = null;
 let quoteInterval = null;
 let currentQuoteIndex = 0;
 
 // Game state variables
-const gameScreen = document.getElementById('game-screen');
 const gameBoard = document.getElementById('game-board');
 const turnsLeftEl = document.getElementById('turns-left');
 const cards = ['🔑', '🔒', '❤️', '🔥', '💧', '⌛', '💎', '⛓️'];
@@ -146,6 +147,13 @@ function renderHistory(history) {
         const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
         const durationString = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+
+        let penaltyString = '';
+        if (item.penaltyTime && item.penaltyTime > 0) {
+            const penaltyHours = Math.floor(item.penaltyTime / (1000 * 60 * 60));
+            const penaltyMinutes = Math.floor((item.penaltyTime % (1000 * 60 * 60)) / (1000 * 60));
+            penaltyString = `<p><strong>Penalty Time:</strong> ${penaltyHours}h ${penaltyMinutes}m</p>`;
+        }
         
         const historyItemEl = document.createElement('div');
         historyItemEl.className = 'history-item';
@@ -154,6 +162,7 @@ function renderHistory(history) {
             <p><strong>Lock-up:</strong> ${start}</p>
             <p><strong>Release:</strong> ${end}</p>
             <p><strong>Duration:</strong> ${durationString}</p>
+            ${penaltyString}
             ${item.pin ? `<p><strong>Combination:</strong> <span class="pin-code-history">${item.pin}</span></p>` : ''}
             <p><strong>Notes:</strong></p>
             <textarea class="history-comment" data-index="${index}" placeholder="Add your comments here..." onchange="saveComment(${index}, this.value)">${item.comment || ''}</textarea>
@@ -265,11 +274,16 @@ function resetTimer() {
     const currentTimer = JSON.parse(localStorage.getItem('chastity_current_timer'));
     if (currentTimer && currentTimer.startTime) {
         const endTime = new Date().getTime();
+        
+        // Get total penalty time
+        const totalPenaltyTime = JSON.parse(localStorage.getItem('chastity_total_penalty_time')) || 0;
+
         const newHistoryItem = { 
             startTime: currentTimer.startTime, 
             endTime: endTime, 
             comment: '',
-            pin: currentTimer.pin
+            pin: currentTimer.pin,
+            penaltyTime: totalPenaltyTime
         };
         const history = JSON.parse(localStorage.getItem('chastity_history')) || [];
         history.push(newHistoryItem);
@@ -278,6 +292,7 @@ function resetTimer() {
         displayPin(currentTimer.pin);
         localStorage.removeItem('chastity_current_timer');
         localStorage.removeItem('chastity_penalty_end');
+        localStorage.removeItem('chastity_total_penalty_time'); // Clear the total penalty for the new session
     }
     loadData();
 }
@@ -296,9 +311,9 @@ function requestUnlock() {
     initGame();
 }
 
+// **New Functionality:** Prevents user from leaving the game screen once started
 function hideGameScreen() {
-    gameScreen.style.display = 'none';
-    timerScreen.style.display = 'block';
+    alert("You cannot abandon the game once it has begun. You must finish.");
 }
 
 // --- Keyholder's Memory Functions ---
@@ -318,7 +333,6 @@ function initGame() {
         const card = document.createElement('div');
         card.classList.add('card');
         card.dataset.value = cardValue;
-        // Start with the question mark
         card.textContent = '?';
         card.addEventListener('click', handleCardClick);
         gameBoard.appendChild(card);
@@ -330,7 +344,6 @@ function handleCardClick(event) {
     const clickedCard = event.currentTarget;
     if (clickedCard.classList.contains('is-flipped')) return;
 
-    // Show the emoji on the card
     clickedCard.textContent = clickedCard.dataset.value;
     clickedCard.classList.add('is-flipped');
 
@@ -369,7 +382,6 @@ function disableCards() {
 function unflipCards() {
     lockBoard = true;
     setTimeout(() => {
-        // Change text back to question mark
         firstCard.textContent = '?';
         secondCard.textContent = '?';
         firstCard.classList.remove('is-flipped');
@@ -392,7 +404,9 @@ function winGame() {
         updateTimerDisplay(finalDurationMs);
     }
     
-    hideGameScreen();
+    // **Modified:** Transition to a state where the user can reset
+    gameScreen.style.display = 'none';
+    timerScreen.style.display = 'block';
     resetButton.style.display = 'block';
     unlockButton.style.display = 'none';
 }
@@ -402,9 +416,16 @@ function loseGame() {
     
     const penaltyDuration = 30 * 60 * 1000;
     const penaltyEndTime = new Date().getTime() + penaltyDuration;
+    
+    // **New:** Add the 30-minute penalty to the total penalty time
+    let totalPenaltyTime = JSON.parse(localStorage.getItem('chastity_total_penalty_time')) || 0;
+    totalPenaltyTime += penaltyDuration;
+    localStorage.setItem('chastity_total_penalty_time', JSON.stringify(totalPenaltyTime));
+
     localStorage.setItem('chastity_penalty_end', JSON.stringify(penaltyEndTime));
 
-    hideGameScreen();
+    gameScreen.style.display = 'none';
+    timerScreen.style.display = 'block';
 }
 
 document.addEventListener('DOMContentLoaded', () => {
