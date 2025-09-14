@@ -13,16 +13,7 @@ export const STORAGE_KEY = {
 
 // Kinky Quotes Array
 export const KINKY_QUOTES = [
-    "Every moment locked is a testament to your submission.",
-    "You are exactly where you belong. Enjoy your time.",
-    "My desires are your command. Remain locked.",
-    "The longer the wait, the sweeter the reward... perhaps.",
-    "Your restraint pleases me. Keep counting those moments.",
-    "Freedom is a state of mind, not a state of unlocking.",
-    "I hold the key, and your patience is truly tested.",
-    "Good boys know how to endure. This time is yours to earn.",
-    "Feel the delightful ache of denial. It suits you.",
-    "Your devotion grows with every passing second in my control.",
+    "Every moment locked is a testament to your submission.", "You are exactly where you belong. Enjoy your time.", "My desires are your command. Remain locked.", "The longer the wait, the sweeter the reward... perhaps.", "Your restraint pleases me. Keep counting those moments.", "Freedom is a state of mind, not a state of unlocking.", "I hold the key, and your patience is truly tested.", "Good boys know how to endure. This time is yours to earn.", "Feel the delightful ache of denial. It suits you.", "Your devotion grows with every passing second in my control."
 ];
 
 // Achievements
@@ -43,7 +34,6 @@ export const RANDOM_EVENTS = [
 export const WHEEL_OUTCOMES = [
     { text: '+1 Hour', type: 'addTime', value: 60 * 60 * 1000 },
     { text: 'Play Game', type: 'play' },
-    // UPDATE THIS LINE
     { text: '+15 Mins', type: 'addTime', value: 15 * 60 * 1000 },
     { text: 'Double Penalty on Loss', type: 'modifier', effect: 'doublePenalty' },
     { text: 'Lockdown!', type: 'lockdown' },
@@ -52,4 +42,3 @@ export const WHEEL_OUTCOMES = [
     { text: '+3 Hours', type: 'addTime', value: 3 * 60 * 60 * 1000 },
     { text: 'Play Game', type: 'play' }
 ];
-
