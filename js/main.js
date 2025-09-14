@@ -92,14 +92,18 @@ function attemptUnlock() {
     ui.switchScreen('game-selection-screen');
 }
 
+// js/main.js
+
 function startGame(gameType) {
     ui.switchScreen('game-screen');
     document.querySelectorAll('.game-container').forEach(c => c.style.display = 'none');
 
+    // Store the name of the game we are about to play
+    state.currentGame = gameType;
+
     const savedGameState = getLocalStorage(STORAGE_KEY.GAME_STATE);
 
     if (gameType === 'memory') {
-        // Pass the saved state to the game initializer
         initMemoryGame(winGame, loseGame, savedGameState);
     } else {
         ui.showModal("Game Not Implemented", "This game is not ready yet.");
@@ -109,22 +113,26 @@ function startGame(gameType) {
 
 function winGame() {
     timer.stopUpdateInterval();
-    // CRITICAL: Clear the saved game state
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
     
+    // Log the winning game attempt
+    state.gameAttempts.push({ name: state.currentGame, result: 'Win', penalty: 0 });
+
     const endTime = Date.now();
     const duration = endTime - state.currentTimer.startTime;
     ui.updateTimerDisplay(duration);
     ui.showFinishedState(state.currentTimer.pin, endTime);
     
-    ui.showModal("Success!", "You have proven your patience. You may now end your session.", false, () => {
+    ui.showModal("Success!", "You may now end your session.", false, () => {
         ui.switchScreen('timer-screen');
     });
 }
 
 function loseGame() {
-    // CRITICAL: Clear the saved game state
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+
+    // Log the losing game attempt with the penalty
+    state.gameAttempts.push({ name: state.currentGame, result: 'Loss', penalty: PENALTY_DURATION_MS });
 
     const penaltyEndTime = Date.now() + PENALTY_DURATION_MS;
     setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
@@ -133,7 +141,7 @@ function loseGame() {
     totalPenalty += PENALTY_DURATION_MS;
     setLocalStorage(STORAGE_KEY.TOTAL_PENALTY, totalPenalty);
 
-    ui.showModal("Failure", "You have failed the test. A 30-minute penalty has been applied.", false, () => {
+    ui.showModal("Failure", "A 30-minute penalty has been applied.", false, () => {
         ui.switchScreen('timer-screen');
         timer.startUpdateInterval(); 
     });
@@ -150,17 +158,19 @@ function endSession() {
         endTime: endTime,
         pin: state.currentTimer.pin,
         comment: '',
-        penaltyTime: totalPenalty
+        penaltyTime: totalPenalty,
+        gameAttempts: state.gameAttempts, // <-- Add the logged games to the history item
     };
 
     state.history.unshift(historyItem);
     saveHistory();
 
+    // Clear the current session data
     state.currentTimer = null;
+    state.gameAttempts = []; // <-- Reset game attempts for the next session
     localStorage.removeItem(STORAGE_KEY.CURRENT_TIMER);
     localStorage.removeItem(STORAGE_KEY.TOTAL_PENALTY);
     localStorage.removeItem(STORAGE_KEY.PENALTY_END);
-    // CRITICAL: Clear any lingering game state
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
 
     state.pendingPin = generatePin();
