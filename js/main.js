@@ -128,8 +128,8 @@ function handleWheelResult(outcome) {
         ui.showModal("Safe!", "The wheel grants you safe passage. You may now attempt a game.");
         setTimeout(() => ui.switchScreen('game-selection-screen'), 500);
     } else { // Double or Nothing
-        ui.showModal("Double or Nothing!", "You've landed on Double or Nothing! You must win your next game, or the penalty will be doubled.");
-        // You can add more complex logic for this state if needed
+        setLocalStorage('chastity_is_double_or_nothing', true);
+        ui.showModal("Double or Nothing!", "You must win your next game. If you lose, your penalty will be DOUBLE your currently locked time.");
         setTimeout(() => ui.switchScreen('game-selection-screen'), 500);
     }
 }
@@ -155,6 +155,7 @@ function winGame() {
     timer.stopUpdateInterval();
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
     localStorage.removeItem('chastity_selected_game');
+    localStorage.removeItem('chastity_is_double_or_nothing'); // Clear the flag on a win
     state.gameAttempts.push({ name: state.currentGame, result: 'Win', penalty: 0 });
     grantAchievement('winGame');
     const endTime = Date.now();
@@ -168,19 +169,38 @@ function winGame() {
 function loseGame() {
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
     localStorage.removeItem('chastity_selected_game');
-    let penalty = PENALTY_DURATION_MS;
-    const activeEvent = getLocalStorage('chastity_active_event');
-    if (activeEvent?.effect === 'halfPenalty' && Date.now() < activeEvent.expiry) penalty /= 2;
+    let penalty;
+    let penaltyMessage;
+
+    const isDoubleOrNothing = getLocalStorage('chastity_is_double_or_nothing');
+
+    if (isDoubleOrNothing) {
+        const elapsedTime = Date.now() - state.currentTimer.startTime;
+        penalty = elapsedTime * 2;
+        const penaltyHours = (penalty / (1000 * 60 * 60)).toFixed(1);
+        penaltyMessage = `You failed the Double or Nothing! A massive ${penaltyHours}-hour penalty has been applied.`;
+        localStorage.removeItem('chastity_is_double_or_nothing'); // Clear the flag
+    } else {
+        penalty = PENALTY_DURATION_MS;
+        const activeEvent = getLocalStorage('chastity_active_event');
+        if (activeEvent?.effect === 'halfPenalty' && Date.now() < activeEvent.expiry) {
+            penalty /= 2;
+        }
+        penaltyMessage = `A penalty of ${penalty / 60000} minutes has been applied.`;
+    }
+
     state.gameAttempts.push({ name: state.currentGame, result: 'Loss', penalty });
     if (state.gameAttempts.filter(a => a.result === 'Loss').length >= 3) {
         grantAchievement('lose3');
     }
+
     const penaltyEndTime = Date.now() + penalty;
     setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
     let totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0;
     totalPenalty += penalty;
     setLocalStorage(STORAGE_KEY.TOTAL_PENALTY, totalPenalty);
-    ui.showModal("Failure", `A penalty of ${penalty / 60000} minutes has been applied.`, false, () => {
+
+    ui.showModal("Failure", penaltyMessage, false, () => {
         ui.switchScreen('timer-screen');
         timer.startUpdateInterval(); 
     });
@@ -211,6 +231,7 @@ function endSession() {
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
     localStorage.removeItem('chastity_active_event');
     localStorage.removeItem('chastity_active_lockdown');
+    localStorage.removeItem('chastity_is_double_or_nothing');
     state.pendingPin = generatePin();
     setLocalStorage(STORAGE_KEY.PENDING_PIN, state.pendingPin);
     ui.renderUIForNoTimer(state.pendingPin);
