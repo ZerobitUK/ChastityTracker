@@ -7,7 +7,6 @@ const elements = {
     lockdownTimer: document.getElementById('lockdown-timer'),
     doubledPenaltyTimer: document.getElementById('doubled-penalty-timer'),
     startDate: document.getElementById('startDate'),
-    startDate: document.getElementById('startDate'),
     timerOptions: document.getElementById('timer-options'),
     startButton: document.getElementById('start-button'),
     unlockButton: document.getElementById('unlock-button'),
@@ -24,8 +23,15 @@ const elements = {
 };
 
 let confirmCallback = null;
+let cancelCallback = null; // Added for Double or Nothing
 
-elements.modalCloseBtn.addEventListener('click', closeModal);
+elements.modalCloseBtn.addEventListener('click', () => {
+    if (typeof cancelCallback === 'function') {
+        cancelCallback();
+    }
+    closeModal();
+});
+
 elements.modalConfirmBtn.addEventListener('click', () => {
     if (typeof confirmCallback === 'function') {
         confirmCallback();
@@ -36,15 +42,17 @@ elements.modalConfirmBtn.addEventListener('click', () => {
 function closeModal() {
     elements.modalContainer.classList.remove('visible');
     confirmCallback = null;
+    cancelCallback = null;
 }
 
-export function showModal(title, message, showConfirm = false, callback = null) {
+export function showModal(title, message, showConfirm = false, onConfirm = null, onCancel = null) {
     elements.modalTitle.textContent = title;
     elements.modalMessage.textContent = message;
     elements.modalConfirmBtn.style.display = showConfirm ? 'block' : 'none';
-    elements.modalCloseBtn.textContent = showConfirm ? 'Cancel' : 'Close';
+    elements.modalCloseBtn.textContent = showConfirm ? 'Decline' : 'Close';
     elements.modalContainer.classList.add('visible');
-    confirmCallback = callback;
+    confirmCallback = onConfirm;
+    cancelCallback = onCancel;
 }
 
 export function switchScreen(screenId) {
@@ -90,6 +98,11 @@ export function updateLockdownTimer(message = '') {
     elements.lockdownTimer.textContent = message;
 }
 
+export function updateDoubledPenaltyTimer(message = '') {
+    elements.doubledPenaltyTimer.textContent = message;
+}
+
+
 export function toggleUnlockButton(visible) {
     elements.unlockButton.style.display = visible ? 'block' : 'none';
 }
@@ -104,16 +117,11 @@ export function renderHistory(history, saveCommentCallback, deleteHistoryItemCal
         const start = new Date(item.startTime).toLocaleString();
         const end = new Date(item.endTime).toLocaleString();
         const durationMs = item.endTime - item.startTime;
-        
-        // Updated duration calculation to include minutes and seconds
         const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
         const hours = Math.floor((durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
-        
-        // Updated duration string to display all parts
         const durationString = `${days}d ${hours}h ${minutes}m ${seconds}s`;
-
         let gamesHtml = '';
         if (item.gameAttempts && item.gameAttempts.length > 0) {
             const gameListItems = item.gameAttempts.map(attempt => {
@@ -130,7 +138,6 @@ export function renderHistory(history, saveCommentCallback, deleteHistoryItemCal
                 </div>
             `;
         }
-
         const historyItemEl = document.createElement('div');
         historyItemEl.className = 'history-item';
         historyItemEl.innerHTML = `
@@ -143,7 +150,6 @@ export function renderHistory(history, saveCommentCallback, deleteHistoryItemCal
             <textarea class="history-comment" data-index="${index}" placeholder="Add notes...">${item.comment || ''}</textarea>`;
         elements.historyContainer.appendChild(historyItemEl);
     });
-
     elements.historyContainer.querySelectorAll('.history-comment').forEach(el => 
         el.addEventListener('change', e => saveCommentCallback(e.target.dataset.index, e.target.value))
     );
@@ -181,8 +187,4 @@ export function showAchievement(achievement) {
     setTimeout(() => {
         toast.classList.remove('show');
     }, 5000);
-}
-
-export function updateDoubledPenaltyTimer(message = '') {
-    elements.doubledPenaltyTimer.textContent = message;
 }
