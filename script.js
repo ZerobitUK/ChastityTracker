@@ -52,6 +52,8 @@ const turnsLeftEl = document.getElementById('turns-left');
 const memoryGameContainer = document.getElementById('memory-game-container');
 const tictactoeGameContainer = document.getElementById('tictactoe-game-container');
 const guessthenumberGameContainer = document.getElementById('guessthenumber-game-container');
+const simonsaysGameContainer = document.getElementById('simonsays-game-container');
+const simonStatusEl = document.getElementById('simon-status');
 
 let interval = null;
 let quoteInterval = null;
@@ -75,6 +77,13 @@ const aiSymbol = 'O';
 let secretNumber = 0;
 let guessAttempts = 0;
 const MAX_ATTEMPTS = 5;
+
+// Simon Says state variables
+let simonSequence = [];
+let playerSequence = [];
+let level = 0;
+let canClick = false;
+const SIMON_WIN_LEVEL = 5;
 
 // Banner Functions
 function startQuoteFlipper() {
@@ -339,7 +348,9 @@ function startGame(gameType) {
     memoryGameContainer.style.display = 'none';
     tictactoeGameContainer.style.display = 'none';
     guessthenumberGameContainer.style.display = 'none';
+    simonsaysGameContainer.style.display = 'none';
     turnsCounterEl.style.display = 'none';
+    simonStatusEl.style.display = 'none';
     document.getElementById('guess-input').style.display = 'none';
     document.getElementById('guess-message').style.display = 'none';
     document.getElementById('guess-prompt').style.display = 'none';
@@ -367,6 +378,12 @@ function startGame(gameType) {
         document.getElementById('guess-prompt').style.display = 'block';
         document.querySelector('#guessthenumber-game-container button').style.display = 'block';
         initGuessTheNumber();
+    } else if (gameType === 'simonsays') {
+        gameTitleEl.textContent = "Simon Says";
+        gameDescriptionEl.textContent = "Remember the sequence and prove your obedience.";
+        simonsaysGameContainer.style.display = 'grid';
+        simonStatusEl.style.display = 'block';
+        initSimonSays();
     }
 }
 
@@ -447,6 +464,19 @@ function loadGame() {
         guessAttempts = savedState.attempts;
         document.getElementById('guess-message').textContent = savedState.message;
         document.getElementById('guess-prompt').textContent = `Attempts left: ${MAX_ATTEMPTS - guessAttempts}`;
+    } else if (savedState.gameType === 'simonsays') {
+        simonSequence = savedState.sequence;
+        playerSequence = savedState.playerSequence;
+        level = savedState.level;
+        canClick = savedState.canClick;
+        simonStatusEl.textContent = `Level ${level}`;
+        const buttons = document.querySelectorAll('.simon-button');
+        if (!canClick) {
+            buttons.forEach(button => button.classList.add('disabled'));
+            playSequence();
+        } else {
+            buttons.forEach(button => button.classList.remove('disabled'));
+        }
     }
 }
 
@@ -470,6 +500,11 @@ function saveGame(gameType) {
         gameState.secretNumber = secretNumber;
         gameState.attempts = guessAttempts;
         gameState.message = document.getElementById('guess-message').textContent;
+    } else if (gameType === 'simonsays') {
+        gameState.sequence = simonSequence;
+        gameState.playerSequence = playerSequence;
+        gameState.level = level;
+        gameState.canClick = canClick;
     }
     localStorage.setItem('chastity_game_state', JSON.stringify(gameState));
 }
@@ -737,8 +772,82 @@ function checkGuess() {
     saveGame('guessthenumber');
 }
 
+// --- Simon Says Functions ---
+function initSimonSays() {
+    simonSequence = [];
+    playerSequence = [];
+    level = 0;
+    simonStatusEl.textContent = `Level 0`;
+    canClick = false;
+    const buttons = document.querySelectorAll('.simon-button');
+    buttons.forEach(button => button.addEventListener('click', handleSimonClick));
+    setTimeout(nextSequence, 1000);
+    saveGame('simonsays');
+}
 
-// Initialize on page load
+function nextSequence() {
+    playerSequence = [];
+    level++;
+    simonStatusEl.textContent = `Level ${level}`;
+    canClick = false;
+    
+    const colors = ['red', 'green', 'blue', 'yellow'];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    simonSequence.push(randomColor);
+    
+    playSequence();
+    saveGame('simonsays');
+}
+
+function playSequence() {
+    const buttons = document.querySelectorAll('.simon-button');
+    buttons.forEach(button => button.classList.add('disabled'));
+    
+    let i = 0;
+    const sequenceInterval = setInterval(() => {
+        const button = document.querySelector(`.simon-button[data-color="${simonSequence[i]}"]`);
+        button.classList.add('active');
+        setTimeout(() => button.classList.remove('active'), 500);
+        
+        i++;
+        if (i >= simonSequence.length) {
+            clearInterval(sequenceInterval);
+            canClick = true;
+            buttons.forEach(button => button.classList.remove('disabled'));
+            simonStatusEl.textContent = `Your turn!`;
+            saveGame('simonsays');
+        }
+    }, 1000);
+}
+
+function handleSimonClick(event) {
+    if (!canClick) return;
+    
+    const clickedColor = event.target.dataset.color;
+    playerSequence.push(clickedColor);
+
+    event.target.classList.add('active');
+    setTimeout(() => event.target.classList.remove('active'), 200);
+
+    const currentIndex = playerSequence.length - 1;
+    if (playerSequence[currentIndex] !== simonSequence[currentIndex]) {
+        simonStatusEl.textContent = `Incorrect! You failed at Level ${level}.`;
+        loseGame();
+        return;
+    }
+
+    if (playerSequence.length === simonSequence.length) {
+        if (level >= SIMON_WIN_LEVEL) {
+            simonStatusEl.textContent = `Victory! You completed Level ${level}.`;
+            winGame();
+        } else {
+            simonStatusEl.textContent = `Correct! Next level...`;
+            setTimeout(nextSequence, 1500);
+        }
+    }
+    saveGame('simonsays');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     startQuoteFlipper();
     loadData();
