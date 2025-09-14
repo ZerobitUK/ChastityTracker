@@ -43,15 +43,21 @@ const pinCodeEl = document.getElementById('pin-code');
 const timerMessageEl = document.getElementById('timer-message');
 const timerOptionsEl = document.getElementById('timer-options');
 const mainContent = document.getElementById('main-content');
+const gameSelectionScreen = document.getElementById('game-selection-screen');
 const gameScreen = document.getElementById('game-screen');
+const gameTitleEl = document.getElementById('game-title');
+const gameDescriptionEl = document.getElementById('game-description');
+const turnsCounterEl = document.getElementById('turns-counter');
+const turnsLeftEl = document.getElementById('turns-left');
+const memoryGameContainer = document.getElementById('memory-game-container');
+const tictactoeGameContainer = document.getElementById('tictactoe-game-container');
+const guessthenumberGameContainer = document.getElementById('guessthenumber-game-container');
 
 let interval = null;
 let quoteInterval = null;
 let currentQuoteIndex = 0;
 
 // Game state variables
-const gameBoard = document.getElementById('game-board');
-const turnsLeftEl = document.getElementById('turns-left');
 const cards = ['🔑', '🔒', '❤️', '🔥', '💧', '⌛', '💎', '⛓️'];
 let firstCard = null;
 let secondCard = null;
@@ -59,6 +65,16 @@ let lockBoard = false;
 let matchedPairs = 0;
 let turnsTaken = 0;
 const MAX_TURNS = 12;
+
+// Tic-Tac-Toe state variables
+let tictactoeBoard = ['', '', '', '', '', '', '', '', ''];
+const playerSymbol = 'X';
+const aiSymbol = 'O';
+
+// Guess the Number state variables
+let secretNumber = 0;
+let guessAttempts = 0;
+const MAX_ATTEMPTS = 5;
 
 // Banner Functions
 function startQuoteFlipper() {
@@ -133,8 +149,8 @@ function loadData() {
 
     const savedGame = localStorage.getItem('chastity_game_state');
     if (savedGame) {
-        gameScreen.style.display = 'block';
         timerScreen.style.display = 'none';
+        gameScreen.style.display = 'block';
         loadGame();
     }
 }
@@ -302,8 +318,9 @@ function resetTimer() {
     }
     loadData();
 }
- 
-function requestUnlock() {
+
+// Show the game selection screen
+function showGameSelection() {
     const penaltyEndTime = JSON.parse(localStorage.getItem('chastity_penalty_end'));
     if (penaltyEndTime && new Date().getTime() < penaltyEndTime) {
         const penaltyTimeLeft = penaltyEndTime - new Date().getTime();
@@ -313,17 +330,56 @@ function requestUnlock() {
     }
 
     timerScreen.style.display = 'none';
-    gameScreen.style.display = 'block';
-    initGame();
+    gameSelectionScreen.style.display = 'block';
 }
 
+// Start the chosen game
+function startGame(gameType) {
+    gameSelectionScreen.style.display = 'none';
+    gameScreen.style.display = 'block';
+
+    // Reset all game containers and displays
+    memoryGameContainer.style.display = 'none';
+    tictactoeGameContainer.style.display = 'none';
+    guessthenumberGameContainer.style.display = 'none';
+    turnsCounterEl.style.display = 'none';
+    document.getElementById('guess-input').style.display = 'none';
+    document.getElementById('guess-message').style.display = 'none';
+    document.getElementById('guess-prompt').style.display = 'none';
+    document.querySelector('#guessthenumber-game-container button').style.display = 'none';
+
+
+    if (gameType === 'memory') {
+        gameTitleEl.textContent = "The Keyholder's Memory";
+        gameDescriptionEl.textContent = "Prove your devotion to your keyholder by solving this puzzle, and you may earn your release.";
+        turnsCounterEl.style.display = 'block';
+        memoryGameContainer.style.display = 'grid';
+        initMemoryGame();
+    } else if (gameType === 'tictactoe') {
+        gameTitleEl.textContent = "Tic-Tac-Toe";
+        gameDescriptionEl.textContent = "Beat the Keyholder to earn your freedom.";
+        tictactoeGameContainer.style.display = 'grid';
+        initTicTacToe();
+    } else if (gameType === 'guessthenumber') {
+        gameTitleEl.textContent = "Guess the Number";
+        gameDescriptionEl.textContent = "Guess the number between 1 and 100. Fail, and your time is extended.";
+        guessthenumberGameContainer.style.display = 'block';
+        document.getElementById('guess-input').style.display = 'block';
+        document.getElementById('guess-message').style.display = 'block';
+        document.getElementById('guess-prompt').style.display = 'block';
+        document.querySelector('#guessthenumber-game-container button').style.display = 'block';
+        initGuessTheNumber();
+    }
+}
+
+// Prevents user from leaving the game screen once started
 function hideGameScreen() {
     alert("You cannot abandon the game once it has begun. You must finish.");
 }
 
-// --- Keyholder's Memory Functions ---
-function initGame() {
-    gameBoard.innerHTML = '';
+// --- Memory Game Functions ---
+function initMemoryGame() {
+    memoryGameContainer.innerHTML = '';
     const cardDeck = [...cards, ...cards];
     cardDeck.sort(() => 0.5 - Math.random());
     
@@ -339,63 +395,89 @@ function initGame() {
         card.classList.add('card');
         card.dataset.value = cardValue;
         card.textContent = '?';
-        card.addEventListener('click', handleCardClick);
-        gameBoard.appendChild(card);
+        card.addEventListener('click', handleMemoryCardClick);
+        memoryGameContainer.appendChild(card);
     });
 
-    saveGame();
+    saveGame('memory');
 }
 
 function loadGame() {
     const savedState = JSON.parse(localStorage.getItem('chastity_game_state'));
     if (!savedState) return;
 
-    gameBoard.innerHTML = '';
-    
-    // Correctly load the game state variables
-    turnsTaken = savedState.turnsTaken;
-    matchedPairs = savedState.matchedPairs;
-    turnsLeftEl.textContent = MAX_TURNS - turnsTaken;
+    startGame(savedState.gameType);
 
-    savedState.cardStates.forEach(state => {
-        const card = document.createElement('div');
-        card.classList.add('card');
-        card.dataset.value = state.value;
-        
-        if (state.isFlipped) {
-            card.classList.add('is-flipped');
-            card.textContent = state.value;
-        } else {
-            card.textContent = '?';
-        }
-        
-        if (!state.isMatched) {
-            card.addEventListener('click', handleCardClick);
-        }
-        
-        gameBoard.appendChild(card);
-    });
+    if (savedState.gameType === 'memory') {
+        memoryGameContainer.innerHTML = '';
+        turnsTaken = savedState.turnsTaken;
+        matchedPairs = savedState.matchedPairs;
+        turnsLeftEl.textContent = MAX_TURNS - turnsTaken;
+
+        savedState.cardStates.forEach(state => {
+            const card = document.createElement('div');
+            card.classList.add('card');
+            card.dataset.value = state.value;
+            
+            if (state.isFlipped) {
+                card.classList.add('is-flipped');
+                card.textContent = state.value;
+            } else {
+                card.textContent = '?';
+            }
+            
+            if (!state.isMatched) {
+                card.addEventListener('click', handleMemoryCardClick);
+            }
+            
+            memoryGameContainer.appendChild(card);
+        });
+    } else if (savedState.gameType === 'tictactoe') {
+        tictactoeBoard = savedState.board;
+        tictactoeGameContainer.innerHTML = '';
+        tictactoeBoard.forEach((cellValue, index) => {
+            const cell = document.createElement('div');
+            cell.classList.add('tictactoe-cell');
+            cell.dataset.index = index;
+            cell.textContent = cellValue;
+            if (!cellValue) {
+                cell.addEventListener('click', handleTicTacToeClick);
+            }
+            tictactoeGameContainer.appendChild(cell);
+        });
+    } else if (savedState.gameType === 'guessthenumber') {
+        secretNumber = savedState.secretNumber;
+        guessAttempts = savedState.attempts;
+        document.getElementById('guess-message').textContent = savedState.message;
+        document.getElementById('guess-prompt').textContent = `Attempts left: ${MAX_ATTEMPTS - guessAttempts}`;
+    }
 }
 
-function saveGame() {
-    const cardStates = [];
-    document.querySelectorAll('.card').forEach(card => {
-        cardStates.push({
-            value: card.dataset.value,
-            isFlipped: card.classList.contains('is-flipped'),
-            isMatched: !card.hasEventListener('click')
+function saveGame(gameType) {
+    let gameState = { gameType: gameType };
+    if (gameType === 'memory') {
+        const cardStates = [];
+        document.querySelectorAll('.card').forEach(card => {
+            cardStates.push({
+                value: card.dataset.value,
+                isFlipped: card.classList.contains('is-flipped'),
+                isMatched: !card.hasEventListener('click')
+            });
         });
-    });
-
-    const gameState = {
-        turnsTaken: turnsTaken,
-        matchedPairs: matchedPairs,
-        cardStates: cardStates
-    };
+        gameState.turnsTaken = turnsTaken;
+        gameState.matchedPairs = matchedPairs;
+        gameState.cardStates = cardStates;
+    } else if (gameType === 'tictactoe') {
+        gameState.board = tictactoeBoard;
+    } else if (gameType === 'guessthenumber') {
+        gameState.secretNumber = secretNumber;
+        gameState.attempts = guessAttempts;
+        gameState.message = document.getElementById('guess-message').textContent;
+    }
     localStorage.setItem('chastity_game_state', JSON.stringify(gameState));
 }
 
-function handleCardClick(event) {
+function handleMemoryCardClick(event) {
     if (lockBoard) return;
     const clickedCard = event.currentTarget;
     if (clickedCard.classList.contains('is-flipped')) return;
@@ -409,19 +491,19 @@ function handleCardClick(event) {
         secondCard = clickedCard;
         turnsTaken++;
         turnsLeftEl.textContent = MAX_TURNS - turnsTaken;
-        checkMatch();
+        checkMemoryMatch();
     }
     
-    saveGame();
+    saveGame('memory');
 }
 
-function checkMatch() {
+function checkMemoryMatch() {
     const isMatch = firstCard.dataset.value === secondCard.dataset.value;
     if (isMatch) {
         matchedPairs++;
-        disableCards();
+        disableMemoryCards();
     } else {
-        unflipCards();
+        unflipMemoryCards();
     }
 
     if (matchedPairs === cards.length) {
@@ -431,26 +513,26 @@ function checkMatch() {
     }
 }
 
-function disableCards() {
-    firstCard.removeEventListener('click', handleCardClick);
-    secondCard.removeEventListener('click', handleCardClick);
-    resetBoard();
+function disableMemoryCards() {
+    firstCard.removeEventListener('click', handleMemoryCardClick);
+    secondCard.removeEventListener('click', handleMemoryCardClick);
+    resetMemoryBoard();
 }
 
-function unflipCards() {
+function unflipMemoryCards() {
     lockBoard = true;
     setTimeout(() => {
         firstCard.textContent = '?';
         secondCard.textContent = '?';
         firstCard.classList.remove('is-flipped');
         secondCard.classList.remove('is-flipped');
-        resetBoard();
+        resetMemoryBoard();
     }, 1500);
 }
 
-function resetBoard() {
+function resetMemoryBoard() {
     [firstCard, secondCard, lockBoard] = [null, null, false];
-    saveGame();
+    saveGame('memory');
 }
 
 function winGame() {
@@ -487,6 +569,121 @@ function loseGame() {
     localStorage.removeItem('chastity_game_state');
 }
 
+// --- Tic-Tac-Toe Functions ---
+function initTicTacToe() {
+    tictactoeBoard = ['', '', '', '', '', '', '', '', ''];
+    tictactoeGameContainer.innerHTML = '';
+    tictactoeBoard.forEach((_, index) => {
+        const cell = document.createElement('div');
+        cell.classList.add('tictactoe-cell');
+        cell.dataset.index = index;
+        cell.addEventListener('click', handleTicTacToeClick);
+        tictactoeGameContainer.appendChild(cell);
+    });
+    saveGame('tictactoe');
+}
+
+function handleTicTacToeClick(event) {
+    const index = event.target.dataset.index;
+    if (tictactoeBoard[index] !== '') {
+        return; // Cell already taken
+    }
+
+    // Player move
+    tictactoeBoard[index] = playerSymbol;
+    event.target.textContent = playerSymbol;
+    saveGame('tictactoe');
+
+    if (checkTicTacToeWin(playerSymbol)) {
+        setTimeout(() => {
+            alert("You beat the Keyholder! You may proceed.");
+            winGame();
+        }, 100);
+        return;
+    }
+
+    if (tictactoeBoard.every(cell => cell !== '')) {
+        setTimeout(() => {
+            alert("It's a draw. You have been granted a reprieve.");
+            winGame();
+        }, 100);
+        return;
+    }
+
+    // AI move
+    setTimeout(() => {
+        const emptyCells = tictactoeBoard.map((val, i) => val === '' ? i : null).filter(val => val !== null);
+        const randomIndex = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        tictactoeBoard[randomIndex] = aiSymbol;
+        tictactoeGameContainer.children[randomIndex].textContent = aiSymbol;
+        saveGame('tictactoe');
+
+        if (checkTicTacToeWin(aiSymbol)) {
+            setTimeout(() => {
+                alert("The Keyholder has bested you. You have failed the test. You are now penalised.");
+                loseGame();
+            }, 100);
+        }
+    }, 500);
+}
+
+function checkTicTacToeWin(symbol) {
+    const winConditions = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+        [0, 4, 8], [2, 4, 6]            // diagonals
+    ];
+    return winConditions.some(condition => {
+        return condition.every(index => tictactoeBoard[index] === symbol);
+    });
+}
+
+
+// --- Guess the Number Functions ---
+function initGuessTheNumber() {
+    secretNumber = Math.floor(Math.random() * 100) + 1; // Number between 1 and 100
+    guessAttempts = 0;
+    document.getElementById('guess-prompt').textContent = `Attempts left: ${MAX_ATTEMPTS}`;
+    document.getElementById('guess-message').textContent = '';
+    document.getElementById('guess-input').value = '';
+    saveGame('guessthenumber');
+}
+
+function checkGuess() {
+    const guess = parseInt(document.getElementById('guess-input').value, 10);
+    const messageEl = document.getElementById('guess-message');
+    
+    if (isNaN(guess) || guess < 1 || guess > 100) {
+        messageEl.textContent = 'Please enter a valid number between 1 and 100.';
+        return;
+    }
+
+    guessAttempts++;
+    document.getElementById('guess-prompt').textContent = `Attempts left: ${MAX_ATTEMPTS - guessAttempts}`;
+
+    if (guess === secretNumber) {
+        messageEl.textContent = "Correct! The Keyholder is pleased.";
+        setTimeout(() => {
+            winGame();
+        }, 100);
+    } else if (guess > secretNumber) {
+        messageEl.textContent = 'Too high!';
+    } else {
+        messageEl.textContent = 'Too low!';
+    }
+
+    if (guessAttempts >= MAX_ATTEMPTS && guess !== secretNumber) {
+        messageEl.textContent = `You have run out of attempts. The number was ${secretNumber}.`;
+        setTimeout(() => {
+            loseGame();
+        }, 100);
+    }
+    
+    saveGame('guessthenumber');
+}
+
+
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     startQuoteFlipper();
     loadData();
