@@ -89,13 +89,9 @@ export function renderUIForNoTimer(pendingPin) {
     elements.resetButton.style.display = 'none';
     elements.timerMessage.textContent = '';
     
-    // Only display the PIN area if there is a pending PIN
-    if (pendingPin) {
-        elements.pinDisplay.style.display = 'block';
-        elements.pinCode.textContent = pendingPin;
-    } else {
-        elements.pinDisplay.style.display = 'none';
-    }
+    // This now correctly displays the PIN area with the pending PIN.
+    elements.pinDisplay.style.display = 'block';
+    elements.pinCode.textContent = pendingPin;
 }
 
 export function updateTimerMessage(message = '') {
