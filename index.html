@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chastity Timer</title>
+    <!-- Link to your CSS file -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -58,6 +59,7 @@
                 <button onclick="startGame('memory')">The Keyholder's Memory</button>
                 <button onclick="startGame('tictactoe')">Tic-Tac-Toe</button>
                 <button onclick="startGame('guessthenumber')">Guess the Number</button>
+                <button onclick="startGame('simonsays')">Simon Says</button>
             </div>
         </div>
         
@@ -66,19 +68,32 @@
             <p id="game-description"></p>
             <div class="turns-counter" id="turns-counter" style="display: none;">Turns left: <span id="turns-left"></span></div>
 
+            <!-- Memory Game -->
             <div id="memory-game-container" class="memory-game-board" style="display: none;"></div>
 
+            <!-- Tic-Tac-Toe -->
             <div id="tictactoe-game-container" class="tictactoe-board" style="display: none;"></div>
             
+            <!-- Guess the Number -->
             <div id="guessthenumber-game-container" style="display: none;">
                 <p id="guess-prompt"></p>
                 <p id="guess-message"></p>
                 <input type="number" id="guess-input" placeholder="Enter your guess">
                 <button onclick="checkGuess()">Submit Guess</button>
             </div>
+
+            <!-- Simon Says -->
+            <div id="simonsays-game-container" class="simonsays-board" style="display:none;">
+                <div class="simon-button" data-color="red"></div>
+                <div class="simon-button" data-color="green"></div>
+                <div class="simon-button" data-color="blue"></div>
+                <div class="simon-button" data-color="yellow"></div>
+            </div>
+            <p id="simon-status" style="display:none;"></p>
         </div>
     </div>
 
+    <!-- Link to your JavaScript file -->
     <script src="script.js"></script>
 </body>
 </html>
