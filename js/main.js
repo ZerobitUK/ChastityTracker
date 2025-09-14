@@ -89,12 +89,25 @@ function startNewTimer() {
 }
 
 function attemptUnlock() {
+    // Check for active lockdown FIRST
+    const activeLockdown = getLocalStorage('chastity_active_lockdown');
+    if (activeLockdown && Date.now() < activeLockdown.expiry) {
+        const timeLeftMs = activeLockdown.expiry - Date.now();
+        const hours = Math.floor(timeLeftMs / (1000 * 60 * 60));
+        const minutes = Math.floor((timeLeftMs % (1000 * 60 * 60)) / (1000 * 60));
+        ui.showModal("Lockdown Active", `You cannot attempt an unlock. ${hours}h ${minutes}m remaining.`);
+        return;
+    }
+
+    // Regular random event trigger
     if (Math.random() < 0.25) {
         const event = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
         setLocalStorage('chastity_active_event', { ...event, expiry: Date.now() + event.duration });
         ui.showModal(event.name, event.description);
         return;
     }
+
+    // Check for other events and penalties
     const activeEvent = getLocalStorage('chastity_active_event');
     if (activeEvent && Date.now() < activeEvent.expiry && activeEvent.name.includes('Lockdown')) {
          ui.showModal(activeEvent.name, "You cannot attempt an unlock during a lockdown event.");
@@ -106,6 +119,7 @@ function attemptUnlock() {
         ui.showModal("Penalty Active", `You cannot attempt an unlock for another ${minutes} minute(s).`);
         return;
     }
+
     ui.switchScreen('wheel-screen');
     initWheel(handleWheelResult);
 }
@@ -127,6 +141,19 @@ function handleWheelResult(outcome) {
             state.currentTimer.startTime += outcome.value;
             setLocalStorage(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
             cleanup();
+            break;
+        case 'lockdown': // <-- ADD THIS NEW CASE
+            const minHours = 4;
+            const maxHours = 8;
+            const randomHours = Math.floor(Math.random() * (maxHours - minHours + 1)) + minHours;
+            const lockdownDurationMs = randomHours * 60 * 60 * 1000;
+            const lockdownEvent = { 
+                name: `Lockdown (${randomHours} hours)`, 
+                expiry: Date.now() + lockdownDurationMs 
+            };
+            setLocalStorage('chastity_active_lockdown', lockdownEvent);
+            ui.showModal(lockdownEvent.name, `You cannot attempt another unlock for ${randomHours} hours.`);
+            setTimeout(() => { cleanup(); ui.switchScreen('timer-screen'); }, 1500);
             break;
         case 'play':
             setTimeout(() => { cleanup(); ui.switchScreen('game-selection-screen'); }, 1500);
