@@ -1,29 +1,19 @@
 // This module handles all DOM manipulations and UI updates.
-
-// DOM Element References
 const elements = {
-    // Screens
     timerScreen: document.getElementById('timer-screen'),
     gameSelectionScreen: document.getElementById('game-selection-screen'),
     gameScreen: document.getElementById('game-screen'),
-    // Timer Display
     timer: document.getElementById('timer'),
     timerMessage: document.getElementById('timer-message'),
     startDate: document.getElementById('startDate'),
-    endDate: document.getElementById('endDate'),
     timerOptions: document.getElementById('timer-options'),
-    // Buttons
     startButton: document.getElementById('start-button'),
     unlockButton: document.getElementById('unlock-button'),
     resetButton: document.getElementById('reset-button'),
-    // PIN Display
     pinDisplay: document.getElementById('pin-display'),
     pinCode: document.getElementById('pin-code'),
-    // History
     historyContainer: document.getElementById('history-container'),
-    // Quote Banner
     quoteBanner: document.getElementById('quote-banner'),
-    // Modal
     modalContainer: document.getElementById('modal-container'),
     modalTitle: document.getElementById('modal-title'),
     modalMessage: document.getElementById('modal-message'),
@@ -33,7 +23,6 @@ const elements = {
 
 let confirmCallback = null;
 
-// Initialize Modal Listeners
 elements.modalCloseBtn.addEventListener('click', closeModal);
 elements.modalConfirmBtn.addEventListener('click', () => {
     if (typeof confirmCallback === 'function') {
@@ -72,7 +61,6 @@ export function updateTimerDisplay(durationMs) {
 export function renderUIForActiveTimer(startTime) {
     elements.timerOptions.style.display = 'none';
     elements.startDate.textContent = new Date(startTime).toLocaleString();
-    elements.endDate.textContent = 'In Progress...';
     elements.startButton.style.display = 'none';
     elements.unlockButton.style.display = 'block';
     elements.resetButton.style.display = 'none';
@@ -83,13 +71,10 @@ export function renderUIForNoTimer(pendingPin) {
     elements.timerOptions.style.display = 'block';
     elements.timer.textContent = '00d : 00h : 00m : 00s';
     elements.startDate.textContent = 'N/A';
-    elements.endDate.textContent = 'N/A';
     elements.startButton.style.display = 'block';
     elements.unlockButton.style.display = 'none';
     elements.resetButton.style.display = 'none';
     elements.timerMessage.textContent = '';
-    
-    // This now correctly displays the PIN area with the pending PIN.
     elements.pinDisplay.style.display = 'block';
     elements.pinCode.textContent = pendingPin;
 }
@@ -101,8 +86,6 @@ export function updateTimerMessage(message = '') {
 export function toggleUnlockButton(visible) {
     elements.unlockButton.style.display = visible ? 'block' : 'none';
 }
-
-// js/ui.js
 
 export function renderHistory(history, saveCommentCallback, deleteHistoryItemCallback) {
     elements.historyContainer.innerHTML = '';
@@ -117,12 +100,10 @@ export function renderHistory(history, saveCommentCallback, deleteHistoryItemCal
         const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
         const hours = Math.floor((durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
 
-        // Create the HTML for the game history section
         let gamesHtml = '';
         if (item.gameAttempts && item.gameAttempts.length > 0) {
             const gameListItems = item.gameAttempts.map(attempt => {
                 const penaltyText = attempt.result === 'Loss' ? ` - ${attempt.penalty / 60000} min penalty` : ' - Unlocked';
-                // Simple title case for game names like 'memory' -> 'Memory'
                 const gameName = attempt.name.charAt(0).toUpperCase() + attempt.name.slice(1);
                 return `<li>${gameName} (${attempt.result})${penaltyText}</li>`;
             }).join('');
@@ -150,7 +131,6 @@ export function renderHistory(history, saveCommentCallback, deleteHistoryItemCal
         elements.historyContainer.appendChild(historyItemEl);
     });
 
-    // Add event listeners for all new elements
     elements.historyContainer.querySelectorAll('.history-comment').forEach(el => 
         el.addEventListener('change', e => saveCommentCallback(e.target.dataset.index, e.target.value))
     );
@@ -177,13 +157,9 @@ export function showFinishedState(pin, endDate) {
     elements.resetButton.style.display = 'block';
     elements.pinDisplay.style.display = 'block';
     elements.pinCode.textContent = pin;
-    elements.endDate.textContent = new Date(endDate).toLocaleString();
     updateTimerMessage('Congratulations. You may end your session.');
 }
 
-// js/ui.js
-
-// ADD THIS ENTIRE FUNCTION
 export function showAchievement(achievement) {
     const toast = document.getElementById('achievement-toast');
     document.getElementById('achievement-name').textContent = achievement.name;
@@ -192,5 +168,5 @@ export function showAchievement(achievement) {
     toast.classList.add('show');
     setTimeout(() => {
         toast.classList.remove('show');
-    }, 5000); // Hide after 5 seconds
+    }, 5000);
 }
