@@ -69,7 +69,7 @@ export function initSimonSays(winCallback, loseCallback) {
     sequence = [];
     playerSequence = [];
     level = 0;
-    buttons.forEach(button => button.removeEventListener('click', handleButtonClick)); // Prevent multiple listeners
+    buttons.forEach(button => button.removeEventListener('click', handleButtonClick));
     buttons.forEach(button => button.addEventListener('click', handleButtonClick));
     setTimeout(nextSequence, 1000);
 }
