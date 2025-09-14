@@ -120,29 +120,44 @@ function attemptUnlock() {
 
 function handleWheelResult(outcome) {
     setLocalStorage('chastity_wheel_outcome', outcome);
-    ui.showModal("Wheel Result", `The wheel landed on: ${outcome.text}`);
+    // Don't show the modal for Double or Nothing, it has its own confirmation
+    if (outcome.type !== 'doubleOrNothing') {
+        ui.showModal("Wheel Result", `The wheel landed on: ${outcome.text}`);
+    }
     setLocalStorage('chastity_wheel_modifier', outcome.effect || null);
+
     const cleanup = () => localStorage.removeItem('chastity_wheel_outcome');
+
     switch(outcome.type) {
+        case 'doubleOrNothing':
+            ui.showModal(
+                "Double or Nothing!",
+                "Accept the gamble: Win and you're free. Lose and a penalty equal to your entire locked time will be applied. You can decline for a 2-hour penalty.",
+                true, // Show confirm button
+                () => { // On Confirm (Accept Gamble)
+                    cleanup();
+                    ui.switchScreen('game-selection-screen');
+                },
+                () => { // On Cancel (Decline Gamble)
+                    const penaltyEndTime = Date.now() + (2 * 60 * 60 * 1000);
+                    setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
+                    cleanup();
+                    ui.switchScreen('timer-screen');
+                }
+            );
+            break;
+        // ... other cases remain the same ...
         case 'addTime':
             const penaltyEndTime = Date.now() + outcome.value;
             setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
             setTimeout(() => { cleanup(); ui.switchScreen('timer-screen'); }, 1500);
-            break;
-        case 'subtractTime':
-            state.currentTimer.startTime += outcome.value;
-            setLocalStorage(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
-            cleanup();
             break;
         case 'lockdown':
             const minHours = 4;
             const maxHours = 8;
             const randomHours = Math.floor(Math.random() * (maxHours - minHours + 1)) + minHours;
             const lockdownDurationMs = randomHours * 60 * 60 * 1000;
-            const lockdownEvent = { 
-                name: `Lockdown (${randomHours} hours)`, 
-                expiry: Date.now() + lockdownDurationMs 
-            };
+            const lockdownEvent = { name: `Lockdown (${randomHours} hours)`, expiry: Date.now() + lockdownDurationMs };
             setLocalStorage('chastity_active_lockdown', lockdownEvent);
             ui.showModal(lockdownEvent.name, `You cannot attempt another unlock for ${randomHours} hours.`);
             setTimeout(() => { cleanup(); ui.switchScreen('timer-screen'); }, 1500);
@@ -158,6 +173,7 @@ function handleWheelResult(outcome) {
             break;
     }
 }
+
 
 function startGame(gameType) {
     setLocalStorage('chastity_selected_game', gameType);
@@ -196,24 +212,44 @@ function loseGame() {
     let penalty = PENALTY_DURATION_MS;
     const wheelModifier = getLocalStorage('chastity_wheel_modifier');
     const activeEvent = getLocalStorage('chastity_active_event');
+
+    // Check for Double or Nothing condition
+    if (wheelModifier === 'doubleOrNothing') {
+        const lockedDuration = Date.now() - state.currentTimer.startTime;
+        const doubledPenalty = {
+            name: 'Double or Nothing Penalty',
+            expiry: Date.now() + lockedDuration,
+        };
+        setLocalStorage('chastity_doubled_penalty', doubledPenalty);
+        ui.showModal("You Lost the Gamble!", "A penalty equal to your entire locked time has been applied.", false, () => {
+            ui.switchScreen('timer-screen');
+            timer.startUpdateInterval();
+        });
+        return; // Stop here to not apply a standard penalty
+    }
+
     if (wheelModifier === 'doublePenalty') penalty *= 2;
     if (activeEvent?.effect === 'halfPenalty' && Date.now() < activeEvent.expiry) penalty /= 2;
+    
     state.gameAttempts.push({ name: state.currentGame, result: 'Loss', penalty });
+    
     if (state.gameAttempts.filter(a => a.result === 'Loss').length >= 3) {
         grantAchievement('lose3');
     }
+
     const penaltyEndTime = Date.now() + penalty;
     setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
+
     let totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0;
     totalPenalty += penalty;
     setLocalStorage(STORAGE_KEY.TOTAL_PENALTY, totalPenalty);
 
-    // This modal now correctly switches the screen back after it's closed
     ui.showModal("Failure", `A penalty of ${penalty / 60000} minutes has been applied.`, false, () => {
-        ui.switchScreen('timer-screen'); // ALWAYS return to the timer screen
+        ui.switchScreen('timer-screen');
         timer.startUpdateInterval(); 
     });
 }
+
 function endSession() {
     if (!state.currentTimer) return;
     const endTime = Date.now();
