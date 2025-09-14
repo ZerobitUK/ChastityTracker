@@ -16,18 +16,23 @@ function lockBoard() {
 function handleCellClick(event) {
     const index = event.target.dataset.index;
     if (board[index] !== '') return;
+
+    // Immediately lock the board to prevent further player clicks
+    lockBoard(); 
+
     board[index] = PLAYER;
     renderBoard();
+
     if (checkWin(PLAYER)) {
-        lockBoard();
         setTimeout(() => onWin(), 100);
         return;
     }
     if (board.every(cell => cell !== '')) {
-        lockBoard();
         setTimeout(() => onWin(), 100);
         return;
     }
+    
+    // AI's turn
     setTimeout(aiMove, 500);
 }
 
