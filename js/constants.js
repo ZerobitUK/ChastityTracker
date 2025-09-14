@@ -25,10 +25,6 @@ export const KINKY_QUOTES = [
     "Your devotion grows with every passing second in my control.",
 ];
 
-// js/constants.js
-
-// ... existing code ...
-
 // Achievements
 export const ACHIEVEMENTS = {
     'lock24h': { name: '24-Hour Club', description: 'Completed a continuous 24-hour lock-up.' },
