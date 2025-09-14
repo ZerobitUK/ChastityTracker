@@ -184,3 +184,17 @@ export function showFinishedState(pin, endDate) {
     elements.endDate.textContent = new Date(endDate).toLocaleString();
     updateTimerMessage('Congratulations. You may end your session.');
 }
+
+// js/ui.js
+
+// ADD THIS ENTIRE FUNCTION
+export function showAchievement(achievement) {
+    const toast = document.getElementById('achievement-toast');
+    document.getElementById('achievement-name').textContent = achievement.name;
+    document.getElementById('achievement-desc').textContent = achievement.description;
+
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 5000); // Hide after 5 seconds
+}
