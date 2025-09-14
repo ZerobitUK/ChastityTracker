@@ -121,7 +121,13 @@ button.danger { background-color: #444; color: var(--button-reset); }
 .delete-btn { position: absolute; top: 5px; right: 5px; background: none; border: none; color: var(--button-reset); font-size: 1.2rem; cursor: pointer; }
 textarea.history-comment { width: 95%; padding: 10px; margin-top: 10px; border-radius: 5px; border: 1px solid #444; background-color: #222; color: var(--text-color); }
 .pin-display-area { margin-top: 20px; padding: 20px; border: 2px solid var(--primary-color); border-radius: 8px; display: none; }
-.pin-code { font-size: 3em; font-weight: bold; color: #798075; letter-spacing: 5px; }
+.pin-code {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: #798075;
+    letter-spacing: 2px;
+    word-break: break-all;
+}
 
 .memory-game-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; max-width: 400px; margin: 20px auto; }
 .card { background-color: #555; border-radius: 8px; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: clamp(1.5rem, 8vw, 2.5rem); transition: transform 0.3s; transform-style: preserve-3d; }
