@@ -1,11 +1,11 @@
 :root {
-    --primary-color: #bb86fc; /* Lighter purple for dark theme */
-    --secondary-color: #292929; /* Darker background for elements */
-    --text-color: #e0e0e0; /* Light text */
-    --background-color: #121212; /* Very dark background */
-    --banner-color: #3700b3; /* Darker purple for banner */
-    --button-start: #03dac6; /* Teal for start button */
-    --button-reset: #cf6679; /* Reddish for reset button */
+    --primary-color: #bb86fc;
+    --secondary-color: #292929;
+    --text-color: #e0e0e0;
+    --background-color: #121212;
+    --banner-color: #3700b3;
+    --button-start: #03dac6;
+    --button-reset: #cf6679;
 }
 
 body {
@@ -187,28 +187,12 @@ button.danger {
     cursor: pointer;
     font-size: 2.5em;
     position: relative;
-    color: #fff; /* Default color for the question mark */
+    color: #fff;
 }
  
 .card.is-flipped {
     background-color: var(--primary-color);
-    color: white; /* Color of the emoji */
-}
-
-.card-content {
-    display: none; /* Hide emoji by default */
-}
-
-.card.is-flipped .card-content {
-    display: block; /* Show emoji when flipped */
-}
- 
-.card-front-content {
-    display: block;
-}
-
-.card.is-flipped .card-front-content {
-    display: none;
+    color: white;
 }
  
 .turns-counter {
