@@ -5,55 +5,49 @@ let onWin, onLose;
 
 const gameContainer = document.getElementById('tictactoe-game-container');
 
-function handleCellClick(event) {
-    const index = event.target.dataset.index;
-    if (board[index] !== '') return;
-
-    board[index] = PLAYER;
-    renderBoard();
-
-    if (checkWin(PLAYER)) {
-        setTimeout(() => onWin(), 100);
-        return;
-    }
-    if (board.every(cell => cell !== '')) {
-        setTimeout(() => onWin(), 100); // Treat draw as a win
-        return;
-    }
-    setTimeout(aiMove, 500);
-}
-
 function lockBoard() {
     const cells = gameContainer.querySelectorAll('.tictactoe-cell');
     cells.forEach(cell => {
-        // This removes the click listener from any remaining empty cells
         const newCell = cell.cloneNode(true);
         cell.parentNode.replaceChild(newCell, cell);
     });
 }
 
+function handleCellClick(event) {
+    const index = event.target.dataset.index;
+    if (board[index] !== '') return;
+    board[index] = PLAYER;
+    renderBoard();
+    if (checkWin(PLAYER)) {
+        lockBoard();
+        setTimeout(() => onWin(), 100);
+        return;
+    }
+    if (board.every(cell => cell !== '')) {
+        lockBoard();
+        setTimeout(() => onWin(), 100);
+        return;
+    }
+    setTimeout(aiMove, 500);
+}
+
 function aiMove() {
-    // 1. Check if AI can win
     let move = findBestMove(AI);
     if (move !== -1) {
         board[move] = AI;
         renderBoard();
         if (checkWin(AI)) {
-            lockBoard(); // Immediately lock the board
-            setTimeout(() => onLose(), 100); // AI wins, player loses
+            lockBoard();
+            setTimeout(() => onLose(), 100);
         }
         return;
     }
-    
-    // 2. Check if player can be blocked
     move = findBestMove(PLAYER);
     if (move !== -1) {
         board[move] = AI;
         renderBoard();
         return;
     }
-
-    // 3. Take center, corner, or any remaining spot...
     if (board[4] === '') {
         board[4] = AI;
         renderBoard();
