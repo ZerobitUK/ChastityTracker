@@ -103,6 +103,8 @@ export function toggleUnlockButton(visible) {
     elements.unlockButton.style.display = visible ? 'block' : 'none';
 }
 
+// js/ui.js
+
 export function renderHistory(history, saveCommentCallback, deleteHistoryItemCallback) {
     elements.historyContainer.innerHTML = '';
     if (history.length === 0) {
@@ -115,6 +117,27 @@ export function renderHistory(history, saveCommentCallback, deleteHistoryItemCal
         const durationMs = item.endTime - item.startTime;
         const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
         const hours = Math.floor((durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+        // Create the HTML for the game history section
+        let gamesHtml = '';
+        if (item.gameAttempts && item.gameAttempts.length > 0) {
+            const gameListItems = item.gameAttempts.map(attempt => {
+                const penaltyText = attempt.result === 'Loss' ? ` - ${attempt.penalty / 60000} min penalty` : ' - Unlocked';
+                // Simple title case for game names like 'memory' -> 'Memory'
+                const gameName = attempt.name.charAt(0).toUpperCase() + attempt.name.slice(1);
+                return `<li>${gameName} (${attempt.result})${penaltyText}</li>`;
+            }).join('');
+
+            gamesHtml = `
+                <div class="game-history">
+                    <div class="game-history-toggle" data-index="${index}">▶ Show Game History (${item.gameAttempts.length} attempts)</div>
+                    <ul class="game-history-list" style="display: none;">
+                        ${gameListItems}
+                    </ul>
+                </div>
+            `;
+        }
+
         const historyItemEl = document.createElement('div');
         historyItemEl.className = 'history-item';
         historyItemEl.innerHTML = `
@@ -123,15 +146,30 @@ export function renderHistory(history, saveCommentCallback, deleteHistoryItemCal
             <p><strong>Release:</strong> ${end}</p>
             <p><strong>Duration:</strong> ${days}d ${hours}h</p>
             <p><strong>Combination:</strong> ${item.pin}</p>
+            ${gamesHtml}
             <textarea class="history-comment" data-index="${index}" placeholder="Add notes...">${item.comment || ''}</textarea>`;
         elements.historyContainer.appendChild(historyItemEl);
     });
 
+    // Add event listeners for all new elements
     elements.historyContainer.querySelectorAll('.history-comment').forEach(el => 
         el.addEventListener('change', e => saveCommentCallback(e.target.dataset.index, e.target.value))
     );
     elements.historyContainer.querySelectorAll('.delete-btn').forEach(el =>
         el.addEventListener('click', e => deleteHistoryItemCallback(e.target.dataset.index))
+    );
+    elements.historyContainer.querySelectorAll('.game-history-toggle').forEach(el =>
+        el.addEventListener('click', (e) => {
+            const list = e.target.nextElementSibling;
+            if (list.style.display === 'none') {
+                list.style.display = 'block';
+                e.target.textContent = `▼ Hide Game History`;
+            } else {
+                list.style.display = 'none';
+                const attemptCount = list.children.length;
+                e.target.textContent = `▶ Show Game History (${attemptCount} attempts)`;
+            }
+        })
     );
 }
 
