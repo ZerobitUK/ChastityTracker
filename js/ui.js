@@ -102,8 +102,15 @@ export function renderHistory(history, saveCommentCallback, deleteHistoryItemCal
         const start = new Date(item.startTime).toLocaleString();
         const end = new Date(item.endTime).toLocaleString();
         const durationMs = item.endTime - item.startTime;
+        
+        // Updated duration calculation to include minutes and seconds
         const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
         const hours = Math.floor((durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
+        
+        // Updated duration string to display all parts
+        const durationString = `${days}d ${hours}h ${minutes}m ${seconds}s`;
 
         let gamesHtml = '';
         if (item.gameAttempts && item.gameAttempts.length > 0) {
@@ -128,7 +135,7 @@ export function renderHistory(history, saveCommentCallback, deleteHistoryItemCal
             <button class="delete-btn" data-index="${index}">&times;</button>
             <p><strong>Lock-up:</strong> ${start}</p>
             <p><strong>Release:</strong> ${end}</p>
-            <p><strong>Duration:</strong> ${days}d ${hours}h</p>
+            <p><strong>Duration:</strong> ${durationString}</p>
             <p><strong>Combination:</strong> ${item.pin}</p>
             ${gamesHtml}
             <textarea class="history-comment" data-index="${index}" placeholder="Add notes...">${item.comment || ''}</textarea>`;
