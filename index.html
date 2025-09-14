@@ -74,19 +74,22 @@
             <button id="back-to-timer-btn" style="margin-top: 1rem; background-color: #555; color: #e0e0e0;">Back to Timer</button>
         </div>
         
-        <div id="game-screen" class="screen">
-            <h2 id="game-title"></h2>
-            <p id="game-description"></p>
-            <div class="turns-counter" id="turns-counter" style="display: none;">Turns left: <span id="turns-left"></span></div>
+<div id="game-screen" class="screen">
+    <h2 id="game-title"></h2>
+    <p id="game-description"></p>
+    <div class="turns-counter" id="turns-counter" style="display: none;">Turns left: <span id="turns-left"></span></div>
 
-            <div id="memory-game-container" class="memory-game-board game-container" style="display: none;"></div>
-            <div id="tictactoe-game-container" class="tictactoe-board game-container" style="display: none;"></div>
-            <div id="guessthenumber-game-container" class="game-container" style="display: none;">
-                <p id="guess-prompt"></p>
-                <p id="guess-message"></p>
-                <input type="number" id="guess-input" placeholder="Enter your guess">
-                <button id="guess-submit-btn">Submit Guess</button>
-            </div>
+    <div id="memory-game-container" class="memory-game-board game-container" style="display: none;"></div>
+    <div id="guessthenumber-game-container" class="game-container" style="display: none;">
+        <p id="guess-prompt"></p>
+        <p id="guess-message"></p>
+        <input type="number" id="guess-input" placeholder="Enter your guess">
+        <button id="guess-submit-btn">Submit Guess</button>
+    </div>
+    <p id="simon-status" style="display:none;"></p>
+
+    <button id="back-to-selection-btn" style="margin-top: 1.5rem; background-color: #555; color: #e0e0e0;">Back to Selection</button>
+</div>
             <div id="simonsays-game-container" class="simonsays-board game-container" style="display:none;">
                 <div class="simon-button" data-color="red"></div>
                 <div class="simon-button" data-color="green"></div>
