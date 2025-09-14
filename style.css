@@ -7,7 +7,6 @@
     --button-start: #03dac6;
     --button-reset: #cf6679;
 }
-
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background-color: var(--background-color);
@@ -20,7 +19,6 @@ body {
     justify-content: center;
     min-height: 100vh;
 }
-
 .container {
     width: 90%;
     max-width: 600px;
@@ -34,8 +32,6 @@ body {
     overflow: hidden;
     min-height: 500px;
 }
-
-/* Screen Transitions */
 .screen {
     position: absolute;
     top: 2rem;
@@ -46,7 +42,6 @@ body {
     transition: opacity 0.5s ease-in-out, visibility 0.5s;
     will-change: opacity;
 }
-
 .screen.active {
     position: relative;
     top: auto;
@@ -55,7 +50,6 @@ body {
     opacity: 1;
     visibility: visible;
 }
-
 .quote-banner {
     width: 100%;
     padding: 1rem;
@@ -73,13 +67,11 @@ body {
     transition: opacity 1s ease-in-out;
     opacity: 1;
 }
-
 h1, h2 { color: var(--primary-color); margin-bottom: 1rem; }
 #timer { font-size: 2.5rem; font-weight: bold; color: var(--primary-color); margin-bottom: 1.5rem; }
 .date-info { font-size: 1rem; color: var(--text-color); margin-bottom: 2rem; }
 #timer-message { margin-bottom: 1rem; font-size: 1.2rem; color: var(--button-start); font-weight: bold; min-height: 1.5em; }
 .actions { display: flex; flex-direction: column; gap: 1rem; width: 100%; }
-
 button {
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
@@ -91,12 +83,9 @@ button {
     font-weight: bold;
 }
 button:hover { transform: translateY(-2px); box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4); }
-
 button.start, button.request-unlock { background-color: var(--button-start); }
 button.reset { background-color: var(--button-reset); }
 button.danger { background-color: #444; color: var(--button-reset); }
-
-/* Modal Styles */
 .modal-container {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background-color: rgba(0, 0, 0, 0.7);
@@ -114,30 +103,19 @@ button.danger { background-color: #444; color: var(--button-reset); }
 #modal-actions { margin-top: 1.5rem; display: flex; justify-content: center; gap: 1rem; }
 #modal-confirm-btn { background-color: var(--button-start); }
 #modal-close-btn { background-color: var(--button-reset); }
-
-/* --- Game & History Styles --- */
 .history-list { margin-top: 2rem; text-align: left; border-top: 1px solid #444; padding-top: 1rem; }
 .history-item { background-color: #222; padding: 10px; border-radius: 5px; margin-bottom: 10px; position: relative; }
 .delete-btn { position: absolute; top: 5px; right: 5px; background: none; border: none; color: var(--button-reset); font-size: 1.2rem; cursor: pointer; }
 textarea.history-comment { width: 95%; padding: 10px; margin-top: 10px; border-radius: 5px; border: 1px solid #444; background-color: #222; color: var(--text-color); }
 .pin-display-area { margin-top: 20px; padding: 20px; border: 2px solid var(--primary-color); border-radius: 8px; display: none; }
-.pin-code {
-    font-size: 1.8em;
-    font-weight: bold;
-    color: #798075;
-    letter-spacing: 2px;
-    word-break: break-all;
-}
-
+.pin-code { font-size: 1.8em; font-weight: bold; color: #798075; letter-spacing: 2px; word-break: break-all; }
 .memory-game-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; max-width: 400px; margin: 20px auto; }
 .card { background-color: #555; border-radius: 8px; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: clamp(1.5rem, 8vw, 2.5rem); transition: transform 0.3s; transform-style: preserve-3d; }
 .card .card-face { backface-visibility: hidden; position: absolute; }
 .card .card-back { transform: rotateY(180deg); }
 .card.is-flipped { transform: rotateY(180deg); }
-
 .tictactoe-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; width: 300px; height: 300px; margin: 20px auto; }
 .tictactoe-cell { background-color: #292929; display: flex; align-items: center; justify-content: center; font-size: 3em; cursor: pointer; color: var(--primary-color); }
-
 #guessthenumber-game-container input { padding: 0.5rem; font-size: 1rem; border-radius: 5px; border: 1px solid var(--primary-color); background-color: #333; color: var(--text-color); width: 100%; max-width: 200px; text-align: center; margin: 1rem auto; }
 .simonsays-board { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px; width: 300px; height: 300px; margin: 20px auto; }
 .simon-button { width: 100%; height: 100%; border-radius: 10%; cursor: pointer; transition: filter 0.2s; }
@@ -148,32 +126,12 @@ textarea.history-comment { width: 95%; padding: 10px; margin-top: 10px; border-r
 .simon-button.active { filter: brightness(1.5); }
 .simon-button.disabled { pointer-events: none; }
 #simon-status { font-size: 1.5rem; font-weight: bold; margin-top: 1rem; }
-
-.game-history-toggle {
-    cursor: pointer;
-    color: var(--primary-color);
-    margin-top: 10px;
-    font-weight: bold;
-    user-select: none; /* Prevents text selection on click */
-}
-
-.game-history-list {
-    list-style-type: disc;
-    margin-left: 20px;
-    padding-left: 10px;
-    text-align: left;
-}
-
-.game-history-list li {
-    margin-bottom: 5px;
-}
-
-/* style.css */
-
-/* --- Achievement Toast Styles --- */
+.game-history-toggle { cursor: pointer; color: var(--primary-color); margin-top: 10px; font-weight: bold; user-select: none; }
+.game-history-list { list-style-type: disc; margin-left: 20px; padding-left: 10px; text-align: left; }
+.game-history-list li { margin-bottom: 5px; }
 .achievement-toast {
     position: fixed;
-    bottom: -150px; /* Start off-screen */
+    bottom: -150px;
     left: 50%;
     transform: translateX(-50%);
     background-color: var(--primary-color);
@@ -185,21 +143,9 @@ textarea.history-comment { width: 95%; padding: 10px; margin-top: 10px; border-r
     transition: bottom 0.5s ease-in-out;
     text-align: center;
 }
-
-.achievement-toast.show {
-    bottom: 20px;
-}
-
-.achievement-toast h3 {
-    margin: 0 0 5px 0;
-    color: var(--background-color);
-}
-.achievement-toast p {
-    margin: 0 0 5px 0;
-    font-weight: bold;
-}
-
-/* --- Wheel of Fortune Styles --- */
+.achievement-toast.show { bottom: 20px; }
+.achievement-toast h3 { margin: 0 0 5px 0; color: var(--background-color); }
+.achievement-toast p { margin: 0 0 5px 0; font-weight: bold; }
 .wheel-container {
     position: relative;
     width: 300px;
@@ -209,22 +155,15 @@ textarea.history-comment { width: 95%; padding: 10px; margin-top: 10px; border-r
     align-items: center;
     justify-content: center;
 }
-
 .wheel {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background-image: conic-gradient(
-        from 0deg,
-        #8e44ad, #9b59b6, #3498db, #2ecc71,
-        #f1c40f, #e67e22, #e74c3c, #c0392b,
-        #8e44ad
-    );
+    background-image: conic-gradient( from 0deg, #8e44ad, #9b59b6, #3498db, #2ecc71, #f1c40f, #e67e22, #e74c3c, #c0392b, #8e44ad );
     transition: transform 5s cubic-bezier(0.25, 1, 0.5, 1);
     position: relative;
     border: 5px solid #fff;
 }
-
 .wheel-segment {
     position: absolute;
     width: 50%;
@@ -240,7 +179,6 @@ textarea.history-comment { width: 95%; padding: 10px; margin-top: 10px; border-r
     justify-content: center;
     padding-left: 20px;
 }
-
 .wheel-pointer {
     position: absolute;
     top: -15px;
@@ -253,6 +191,3 @@ textarea.history-comment { width: 95%; padding: 10px; margin-top: 10px; border-r
     border-top: 30px solid white;
     z-index: 10;
 }
-
-/* Add this line to hide the 'Release Anticipated' field */
-#endDate { display: none; }
