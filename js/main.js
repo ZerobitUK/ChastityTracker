@@ -111,34 +111,37 @@ function attemptUnlock() {
 }
 
 function handleWheelResult(outcome) {
-    // Show the result in a modal first
+    setLocalStorage('chastity_wheel_outcome', outcome);
     ui.showModal("Wheel Result", `The wheel landed on: ${outcome.text}`);
     setLocalStorage('chastity_wheel_modifier', outcome.effect || null);
 
+    const cleanup = () => localStorage.removeItem('chastity_wheel_outcome');
+
     switch(outcome.type) {
         case 'addTime':
-            // SET A PENALTY instead of adjusting the start time
             const penaltyEndTime = Date.now() + outcome.value;
             setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
-            setTimeout(() => ui.switchScreen('timer-screen'), 1500);
+            setTimeout(() => { cleanup(); ui.switchScreen('timer-screen'); }, 1500);
             break;
         case 'subtractTime':
-            state.currentTimer.startTime += outcome.value; // This correctly subtracts time
+            state.currentTimer.startTime += outcome.value;
             setLocalStorage(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
+            cleanup();
             break;
         case 'play':
-            setTimeout(() => ui.switchScreen('game-selection-screen'), 1500);
+            setTimeout(() => { cleanup(); ui.switchScreen('game-selection-screen'); }, 1500);
             break;
         case 'nothing':
-            setTimeout(() => ui.switchScreen('timer-screen'), 1500);
+            setTimeout(() => { cleanup(); ui.switchScreen('timer-screen'); }, 1500);
             break;
         case 'modifier':
-            setTimeout(() => ui.switchScreen('game-selection-screen'), 1500);
+            setTimeout(() => { cleanup(); ui.switchScreen('game-selection-screen'); }, 1500);
             break;
     }
 }
 
 function startGame(gameType) {
+    setLocalStorage('chastity_selected_game', gameType);
     ui.switchScreen('game-screen');
     document.querySelectorAll('.game-container').forEach(c => c.style.display = 'none');
     state.currentGame = gameType;
@@ -157,6 +160,7 @@ function startGame(gameType) {
 function winGame() {
     timer.stopUpdateInterval();
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+    localStorage.removeItem('chastity_selected_game');
     state.gameAttempts.push({ name: state.currentGame, result: 'Win', penalty: 0 });
     grantAchievement('winGame');
     const endTime = Date.now();
@@ -169,6 +173,7 @@ function winGame() {
 
 function loseGame() {
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+    localStorage.removeItem('chastity_selected_game');
     let penalty = PENALTY_DURATION_MS;
     const wheelModifier = getLocalStorage('chastity_wheel_modifier');
     const activeEvent = getLocalStorage('chastity_active_event');
@@ -278,11 +283,22 @@ function setupEventListeners() {
 
 function initializeApp() {
     loadState();
+
     if (!state.currentTimer) {
         localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+        localStorage.removeItem('chastity_selected_game');
+        localStorage.removeItem('chastity_wheel_outcome');
     }
+    
+    const pendingWheelOutcome = getLocalStorage('chastity_wheel_outcome');
+    const pendingSelectedGame = getLocalStorage('chastity_selected_game');
     const savedGameState = getLocalStorage(STORAGE_KEY.GAME_STATE);
-    if (state.currentTimer && savedGameState?.won) {
+
+    if (pendingWheelOutcome) {
+        handleWheelResult(pendingWheelOutcome);
+    } else if (pendingSelectedGame) {
+        startGame(pendingSelectedGame);
+    } else if (state.currentTimer && savedGameState?.won) {
         const endTime = Date.now();
         ui.updateTimerDisplay(endTime - state.currentTimer.startTime);
         ui.showFinishedState(state.currentTimer.pin, endTime);
@@ -292,10 +308,14 @@ function initializeApp() {
     } else {
         ui.renderUIForNoTimer(state.pendingPin);
     }
+    
     ui.renderHistory(state.history, saveComment, deleteHistoryItem);
     setupEventListeners();
     startQuoteFlipper();
-    ui.switchScreen('timer-screen');
+
+    if (!pendingWheelOutcome && !pendingSelectedGame) {
+        ui.switchScreen('timer-screen');
+    }
 }
 
 initializeApp();
