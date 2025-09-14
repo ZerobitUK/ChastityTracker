@@ -13,10 +13,11 @@ function getLocalStorage(key) {
     }
 }
 
-export function startUpdateInterval() {
-    clearInterval(timerInterval);
+// js/timer.js
 
-    timerInterval = setInterval(() => {
+export function startUpdateInterval() {
+    // This function will run immediately once to set the initial UI state correctly
+    const update = () => {
         const currentTimer = getLocalStorage(STORAGE_KEY.CURRENT_TIMER);
         if (!currentTimer || !currentTimer.startTime) {
             clearInterval(timerInterval);
@@ -47,8 +48,11 @@ export function startUpdateInterval() {
         
         updateTimerMessage(currentTimer.minEndTime ? 'Minimum time has been met.' : '');
         toggleUnlockButton(true);
+    };
 
-    }, 1000);
+    clearInterval(timerInterval); // Clear any existing interval
+    update(); // Run once immediately
+    timerInterval = setInterval(update, 1000); // Then set it to run every second
 }
 
 export function stopUpdateInterval() {
