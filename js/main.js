@@ -51,7 +51,11 @@ function saveHistory() {
 }
 
 function generatePin() {
-    return Math.floor(1000 + Math.random() * 9000).toString();
+    let pin = '';
+    for (let i = 0; i < 12; i++) {
+        pin += Math.floor(Math.random() * 10);
+    }
+    return pin;
 }
 
 // --- Application Logic ---
