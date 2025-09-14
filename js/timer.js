@@ -1,4 +1,4 @@
-import { updateTimerDisplay, updateTimerMessage, toggleUnlockButton } from './ui.js';
+import { updateTimerDisplay, updateTimerMessage, toggleUnlockButton, updateLockdownTimer } from './ui.js';
 import { STORAGE_KEY } from './constants.js';
 
 let timerInterval = null;
@@ -13,10 +13,7 @@ function getLocalStorage(key) {
     }
 }
 
-// js/timer.js
-
 export function startUpdateInterval() {
-    // This function will run immediately once to set the initial UI state correctly
     const update = () => {
         const currentTimer = getLocalStorage(STORAGE_KEY.CURRENT_TIMER);
         if (!currentTimer || !currentTimer.startTime) {
@@ -26,6 +23,19 @@ export function startUpdateInterval() {
 
         const now = Date.now();
         updateTimerDisplay(now - currentTimer.startTime);
+        
+        const activeLockdown = getLocalStorage('chastity_active_lockdown');
+        if (activeLockdown && now < activeLockdown.expiry) {
+            const timeLeft = activeLockdown.expiry - now;
+            const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            updateLockdownTimer(`Lockdown Active: ${hours}h ${minutes}m remaining.`);
+            toggleUnlockButton(false);
+            updateTimerMessage('');
+            return;
+        } else {
+             updateLockdownTimer('');
+        }
 
         const penaltyEnd = getLocalStorage(STORAGE_KEY.PENALTY_END);
         if (penaltyEnd && now < penaltyEnd) {
@@ -50,9 +60,9 @@ export function startUpdateInterval() {
         toggleUnlockButton(true);
     };
 
-    clearInterval(timerInterval); // Clear any existing interval
-    update(); // Run once immediately
-    timerInterval = setInterval(update, 1000); // Then set it to run every second
+    clearInterval(timerInterval);
+    update();
+    timerInterval = setInterval(update, 1000);
 }
 
 export function stopUpdateInterval() {
