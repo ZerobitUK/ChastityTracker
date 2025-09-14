@@ -14,6 +14,7 @@ let state = {
     currentTimer: null,
     history: [],
     pendingPin: null,
+    gameAttempts: [],
 };
 
 function getLocalStorage(key) {
