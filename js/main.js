@@ -1,7 +1,7 @@
-import { KINKY_QUOTES, QUOTE_FLIP_INTERVAL_MS, STORAGE_KEY, PENALTY_DURATION_MS, ACHIEVEMENTS, RANDOM_EVENTS, WHEEL_OUTCOMES } from './constants.js';
+import { KINKY_QUOTES, QUOTE_FLIP_INTERVAL_MS, STORAGE_KEY, PENALTY_DURATION_MS, ACHIEVEMENTS, RANDOM_EVENTS } from './constants.js';
 import * as ui from './ui.js';
 import * as timer from './timer.js';
-import { initWheel } from './game_wheel.js';
+import { initMinefield } from './game_minefield.js';
 import { initMemoryGame } from './game_memory.js';
 import { initTicTacToe } from './game_tictactoe.js';
 import { initGuessTheNumber } from './game_guess.js';
@@ -114,66 +114,25 @@ function attemptUnlock() {
         ui.showModal("Penalty Active", `You cannot attempt an unlock for another ${minutes} minute(s).`);
         return;
     }
-    ui.switchScreen('wheel-screen');
-    initWheel(handleWheelResult);
+
+    ui.switchScreen('minefield-screen');
+    initMinefield(handleMinefieldResult);
 }
 
-function handleWheelResult(outcome) {
-    setLocalStorage('chastity_wheel_outcome', outcome);
-    // Don't show the modal for Double or Nothing, it has its own confirmation
-    if (outcome.type !== 'doubleOrNothing') {
-        ui.showModal("Wheel Result", `The wheel landed on: ${outcome.text}`);
-    }
-    setLocalStorage('chastity_wheel_modifier', outcome.effect || null);
-
-    const cleanup = () => localStorage.removeItem('chastity_wheel_outcome');
-
-    switch(outcome.type) {
-        case 'doubleOrNothing':
-            ui.showModal(
-                "Double or Nothing!",
-                "Accept the gamble: Win and you're free. Lose and a penalty equal to your entire locked time will be applied. You can decline for a 2-hour penalty.",
-                true, // Show confirm button
-                () => { // On Confirm (Accept Gamble)
-                    cleanup();
-                    ui.switchScreen('game-selection-screen');
-                },
-                () => { // On Cancel (Decline Gamble)
-                    const penaltyEndTime = Date.now() + (2 * 60 * 60 * 1000);
-                    setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
-                    cleanup();
-                    ui.switchScreen('timer-screen');
-                }
-            );
-            break;
-        // ... other cases remain the same ...
-        case 'addTime':
-            const penaltyEndTime = Date.now() + outcome.value;
-            setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
-            setTimeout(() => { cleanup(); ui.switchScreen('timer-screen'); }, 1500);
-            break;
-        case 'lockdown':
-            const minHours = 4;
-            const maxHours = 8;
-            const randomHours = Math.floor(Math.random() * (maxHours - minHours + 1)) + minHours;
-            const lockdownDurationMs = randomHours * 60 * 60 * 1000;
-            const lockdownEvent = { name: `Lockdown (${randomHours} hours)`, expiry: Date.now() + lockdownDurationMs };
-            setLocalStorage('chastity_active_lockdown', lockdownEvent);
-            ui.showModal(lockdownEvent.name, `You cannot attempt another unlock for ${randomHours} hours.`);
-            setTimeout(() => { cleanup(); ui.switchScreen('timer-screen'); }, 1500);
-            break;
-        case 'play':
-            setTimeout(() => { cleanup(); ui.switchScreen('game-selection-screen'); }, 1500);
-            break;
-        case 'nothing':
-            setTimeout(() => { cleanup(); ui.switchScreen('timer-screen'); }, 1500);
-            break;
-        case 'modifier':
-            setTimeout(() => { cleanup(); ui.switchScreen('game-selection-screen'); }, 1500);
-            break;
+function handleMinefieldResult(isMine) {
+    if (isMine) {
+        const minHours = 1;
+        const maxHours = 4;
+        const randomHours = Math.floor(Math.random() * (maxHours - minHours + 1)) + minHours;
+        const penaltyDurationMs = randomHours * 60 * 60 * 1000;
+        const penaltyEndTime = Date.now() + penaltyDurationMs;
+        setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
+        ui.showModal("Mine Hit!", `You hit a mine! A ${randomHours}-hour penalty has been applied.`);
+    } else {
+        ui.showModal("Safe!", "You chose a safe tile. You may now attempt to play a game.");
+        setTimeout(() => ui.switchScreen('game-selection-screen'), 500);
     }
 }
-
 
 function startGame(gameType) {
     setLocalStorage('chastity_selected_game', gameType);
@@ -210,40 +169,17 @@ function loseGame() {
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
     localStorage.removeItem('chastity_selected_game');
     let penalty = PENALTY_DURATION_MS;
-    const wheelModifier = getLocalStorage('chastity_wheel_modifier');
     const activeEvent = getLocalStorage('chastity_active_event');
-
-    // Check for Double or Nothing condition
-    if (wheelModifier === 'doubleOrNothing') {
-        const lockedDuration = Date.now() - state.currentTimer.startTime;
-        const doubledPenalty = {
-            name: 'Double or Nothing Penalty',
-            expiry: Date.now() + lockedDuration,
-        };
-        setLocalStorage('chastity_doubled_penalty', doubledPenalty);
-        ui.showModal("You Lost the Gamble!", "A penalty equal to your entire locked time has been applied.", false, () => {
-            ui.switchScreen('timer-screen');
-            timer.startUpdateInterval();
-        });
-        return; // Stop here to not apply a standard penalty
-    }
-
-    if (wheelModifier === 'doublePenalty') penalty *= 2;
     if (activeEvent?.effect === 'halfPenalty' && Date.now() < activeEvent.expiry) penalty /= 2;
-    
     state.gameAttempts.push({ name: state.currentGame, result: 'Loss', penalty });
-    
     if (state.gameAttempts.filter(a => a.result === 'Loss').length >= 3) {
         grantAchievement('lose3');
     }
-
     const penaltyEndTime = Date.now() + penalty;
     setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
-
     let totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0;
     totalPenalty += penalty;
     setLocalStorage(STORAGE_KEY.TOTAL_PENALTY, totalPenalty);
-
     ui.showModal("Failure", `A penalty of ${penalty / 60000} minutes has been applied.`, false, () => {
         ui.switchScreen('timer-screen');
         timer.startUpdateInterval(); 
@@ -273,7 +209,6 @@ function endSession() {
     localStorage.removeItem(STORAGE_KEY.TOTAL_PENALTY);
     localStorage.removeItem(STORAGE_KEY.PENALTY_END);
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
-    localStorage.removeItem('chastity_wheel_modifier');
     localStorage.removeItem('chastity_active_event');
     localStorage.removeItem('chastity_active_lockdown');
     state.pendingPin = generatePin();
@@ -329,7 +264,7 @@ function setupEventListeners() {
     document.getElementById('reset-app-button').addEventListener('click', resetApp);
     document.getElementById('back-to-timer-btn').addEventListener('click', () => ui.switchScreen('timer-screen'));
     document.getElementById('back-to-selection-btn').addEventListener('click', () => ui.switchScreen('game-selection-screen'));
-    document.getElementById('wheel-back-btn').addEventListener('click', () => ui.switchScreen('timer-screen'));
+    document.getElementById('minefield-back-btn').addEventListener('click', () => ui.switchScreen('timer-screen'));
     document.getElementById('game-selection-buttons').addEventListener('click', (e) => {
         if (e.target.tagName === 'BUTTON') {
             const gameType = e.target.dataset.game;
@@ -343,14 +278,10 @@ function initializeApp() {
     if (!state.currentTimer) {
         localStorage.removeItem(STORAGE_KEY.GAME_STATE);
         localStorage.removeItem('chastity_selected_game');
-        localStorage.removeItem('chastity_wheel_outcome');
     }
-    const pendingWheelOutcome = getLocalStorage('chastity_wheel_outcome');
     const pendingSelectedGame = getLocalStorage('chastity_selected_game');
     const savedGameState = getLocalStorage(STORAGE_KEY.GAME_STATE);
-    if (pendingWheelOutcome) {
-        handleWheelResult(pendingWheelOutcome);
-    } else if (pendingSelectedGame) {
+    if (pendingSelectedGame) {
         startGame(pendingSelectedGame);
     } else if (state.currentTimer && savedGameState?.won) {
         const endTime = Date.now();
@@ -365,7 +296,7 @@ function initializeApp() {
     ui.renderHistory(state.history, saveComment, deleteHistoryItem);
     setupEventListeners();
     startQuoteFlipper();
-    if (!pendingWheelOutcome && !pendingSelectedGame) {
+    if (!pendingSelectedGame) {
         ui.switchScreen('timer-screen');
     }
 }
