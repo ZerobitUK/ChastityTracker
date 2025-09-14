@@ -253,15 +253,25 @@ function setupEventListeners() {
 function initializeApp() {
     loadState();
 
-    if (getLocalStorage(STORAGE_KEY.GAME_STATE)?.won) {
-        // If game was won but session not ended, show finished state
+    // Clear any stale game state if no timer is active
+    if (!state.currentTimer) {
+        localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+    }
+    
+    const savedGameState = getLocalStorage(STORAGE_KEY.GAME_STATE);
+    
+    // Scenario 1: Game was won but session not ended
+    if (state.currentTimer && savedGameState?.won) {
         const endTime = Date.now();
-        const duration = endTime - state.currentTimer.startTime;
-        ui.updateTimerDisplay(duration);
+        ui.updateTimerDisplay(endTime - state.currentTimer.startTime);
         ui.showFinishedState(state.currentTimer.pin, endTime);
+
+    // Scenario 2: A timer is actively running
     } else if (state.currentTimer) {
         ui.renderUIForActiveTimer(state.currentTimer.startTime);
         timer.startUpdateInterval();
+
+    // Scenario 3: No active timer, ready to start
     } else {
         ui.renderUIForNoTimer(state.pendingPin);
     }
@@ -269,7 +279,7 @@ function initializeApp() {
     ui.renderHistory(state.history, saveComment, deleteHistoryItem);
     setupEventListeners();
     startQuoteFlipper();
-    ui.switchScreen('timer-screen'); // Ensure timer screen is always the default on load
+    ui.switchScreen('timer-screen');
 }
 
 // Start the application
