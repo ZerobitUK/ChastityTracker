@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chastity Timer</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="wheel.css">
 </head>
 <body>
     <div id="modal-container" class="modal-container">
@@ -81,11 +82,15 @@
             <button id="back-to-timer-btn" style="margin-top: 1rem; background-color: #555; color: #e0e0e0;">Back to Timer</button>
         </div>
         
-        <div id="minefield-screen" class="screen">
-            <h2>The Minefield</h2>
-            <p>Most squares are safe... but some will trigger a penalty. Choose wisely.</p>
-            <div id="minefield-grid" class="minefield-grid"></div>
-            <button id="minefield-back-btn" style="margin-top: 1rem; background-color: #555; color: #e0e0e0; display: none;">Continue</button>
+        <div id="wheel-screen" class="screen">
+            <h2>Wheel of Fortune</h2>
+            <p>Spin the wheel to discover your fate. Will it be freedom or further denial?</p>
+            <div class="wheel-container">
+                <div class="wheel-pointer"></div>
+                <div id="wheel" class="wheel"></div>
+            </div>
+            <button id="spin-button">Spin the Wheel</button>
+            <button id="wheel-back-btn" style="margin-top: 1rem; background-color: #555; color: #e0e0e0; display: none;">Continue</button>
         </div>
 
         <div id="game-screen" class="screen">
