@@ -111,15 +111,19 @@ function attemptUnlock() {
 }
 
 function handleWheelResult(outcome) {
+    // Show the result in a modal first
     ui.showModal("Wheel Result", `The wheel landed on: ${outcome.text}`);
     setLocalStorage('chastity_wheel_modifier', outcome.effect || null);
+
     switch(outcome.type) {
         case 'addTime':
-            state.currentTimer.startTime -= outcome.value;
-            setLocalStorage(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
+            // SET A PENALTY instead of adjusting the start time
+            const penaltyEndTime = Date.now() + outcome.value;
+            setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
+            setTimeout(() => ui.switchScreen('timer-screen'), 1500);
             break;
         case 'subtractTime':
-            state.currentTimer.startTime += outcome.value;
+            state.currentTimer.startTime += outcome.value; // This correctly subtracts time
             setLocalStorage(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
             break;
         case 'play':
