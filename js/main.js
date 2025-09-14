@@ -240,6 +240,7 @@ function setupEventListeners() {
     document.getElementById('reset-button').addEventListener('click', endSession);
     document.getElementById('reset-app-button').addEventListener('click', resetApp);
     document.getElementById('back-to-timer-btn').addEventListener('click', () => ui.switchScreen('timer-screen'));
+    document.getElementById('back-to-selection-btn').addEventListener('click', () => ui.switchScreen('game-selection-screen'));
 
     document.getElementById('game-selection-buttons').addEventListener('click', (e) => {
         if (e.target.tagName === 'BUTTON') {
