@@ -131,7 +131,6 @@ function loadData() {
         resetButton.style.display = 'none';
     }
 
-    // Check for an active game session and load it
     const savedGame = localStorage.getItem('chastity_game_state');
     if (savedGame) {
         gameScreen.style.display = 'block';
@@ -344,7 +343,6 @@ function initGame() {
         gameBoard.appendChild(card);
     });
 
-    // Save initial game state
     saveGame();
 }
 
@@ -353,10 +351,12 @@ function loadGame() {
     if (!savedState) return;
 
     gameBoard.innerHTML = '';
-    turnsTaken = savedState.turnsTaken;
-    turnsLeftEl.textContent = MAX_TURNS - turnsTaken;
-    matchedPairs = savedState.matchedPairs;
     
+    // Correctly load the game state variables
+    turnsTaken = savedState.turnsTaken;
+    matchedPairs = savedState.matchedPairs;
+    turnsLeftEl.textContent = MAX_TURNS - turnsTaken;
+
     savedState.cardStates.forEach(state => {
         const card = document.createElement('div');
         card.classList.add('card');
@@ -365,13 +365,11 @@ function loadGame() {
         if (state.isFlipped) {
             card.classList.add('is-flipped');
             card.textContent = state.value;
-            if (state.isMatched) {
-                card.removeEventListener('click', handleCardClick);
-            } else {
-                card.addEventListener('click', handleCardClick);
-            }
         } else {
             card.textContent = '?';
+        }
+        
+        if (!state.isMatched) {
             card.addEventListener('click', handleCardClick);
         }
         
