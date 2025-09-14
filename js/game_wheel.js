@@ -13,8 +13,22 @@ function setupWheel() {
     WHEEL_OUTCOMES.forEach((outcome, index) => {
         const segment = document.createElement('div');
         segment.classList.add('wheel-segment');
-        segment.textContent = outcome.text;
-        segment.style.transform = `rotate(${segmentAngle * index + segmentAngle / 2}deg)`;
+
+        // This transform creates the wedge shape for the segment
+        const rotation = segmentAngle * index;
+        segment.style.transform = `rotate(${rotation}deg)`;
+
+        // Create a separate content element for the text
+        const content = document.createElement('div');
+        content.classList.add('wheel-segment-content');
+        content.textContent = outcome.text;
+        
+        // This transform rotates the text itself to be horizontal
+        // It calculates the center of the segment and then rotates the text back
+        const textRotation = -90 + (segmentAngle / 2);
+        content.style.transform = `rotate(${textRotation}deg)`;
+
+        segment.appendChild(content);
         wheelEl.appendChild(segment);
     });
 }
@@ -23,6 +37,7 @@ function spin() {
     spinButton.disabled = true;
     backButton.style.display = 'none';
     const winningSegmentIndex = Math.floor(Math.random() * segmentCount);
+    // Adjust rotation to align the pointer with the middle of the segment
     const rotation = (360 - (winningSegmentIndex * segmentAngle)) - (segmentAngle / 2);
     const fullSpins = 5 + Math.floor(Math.random() * 3);
     const finalAngle = rotation + (360 * fullSpins);
@@ -32,7 +47,7 @@ function spin() {
         const winningOutcome = WHEEL_OUTCOMES[winningSegmentIndex];
         backButton.style.display = 'block';
         onSpinComplete(winningOutcome);
-    }, 5500);
+    }, 5500); // Wait for spin animation to finish
 }
 
 export function initWheel(spinCallback) {
@@ -40,16 +55,21 @@ export function initWheel(spinCallback) {
     setupWheel();
     spinButton.disabled = false;
     backButton.style.display = 'none';
+    
+    // Reset the wheel's rotation instantly before setting the transition
     wheelEl.style.transition = 'none';
     wheelEl.style.transform = 'rotate(0deg)';
+    
+    // Use a tiny timeout to ensure the transition is applied after the reset
     setTimeout(() => {
         wheelEl.style.transition = 'transform 5s cubic-bezier(0.25, 1, 0.5, 1)';
     }, 50);
 
+    // Use a fresh event listener to prevent multiple spins
     const spinHandler = () => {
         spin();
         spinButton.removeEventListener('click', spinHandler);
     };
-    spinButton.removeEventListener('click', spin);
+    spinButton.removeEventListener('click', spin); // Clean up any old listeners
     spinButton.addEventListener('click', spinHandler);
 }
