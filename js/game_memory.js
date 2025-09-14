@@ -7,7 +7,6 @@ let firstCard, secondCard;
 let lockBoard = false;
 let onWin, onLose;
 
-// Game state object
 let state = {
     deck: [],
     turnsTaken: 0,
@@ -17,7 +16,6 @@ let state = {
 const gameContainer = document.getElementById('memory-game-container');
 const turnsLeftEl = document.getElementById('turns-left');
 
-// Helper function to safely interact with localStorage
 function setGameState(newState) {
     try {
         localStorage.setItem(STORAGE_KEY.GAME_STATE, JSON.stringify(newState));
@@ -33,7 +31,6 @@ function handleCardClick(event) {
 
     if (clickedCard === firstCard || state.deck[cardIndex].isFlipped) return;
 
-    // Flip the card
     state.deck[cardIndex].isFlipped = true;
     clickedCard.classList.add('is-flipped');
 
@@ -45,7 +42,6 @@ function handleCardClick(event) {
         turnsLeftEl.textContent = MAX_TURNS - state.turnsTaken;
         checkForMatch();
     }
-    // Save state on every click
     setGameState(state);
 }
 
@@ -67,11 +63,9 @@ function unflipCards() {
         const secondIndex = secondCard.dataset.index;
         state.deck[firstIndex].isFlipped = false;
         state.deck[secondIndex].isFlipped = false;
-
         firstCard.classList.remove('is-flipped');
         secondCard.classList.remove('is-flipped');
         resetBoard();
-        // Save state after cards are unflipped
         setGameState(state);
     }, 1500);
 }
@@ -81,13 +75,10 @@ function resetBoard() {
 }
 
 function checkGameEnd() {
-    // First, check for a win. If the board is clear, it's a win.
     if (state.matchedPairs === CARDS.length) {
         onWin();
-        return; // Stop the function here to ensure the win is registered.
+        return;
     }
-
-    // Only if the player has NOT won, check if they have run out of turns.
     if (state.turnsTaken >= MAX_TURNS) {
         onLose();
     }
@@ -107,7 +98,6 @@ function renderBoard() {
             <div class="card-face card-front">?</div>
             <div class="card-face card-back">${cardState.value}</div>
         `;
-        // If not matched, add click listener
         if (!cardState.isMatched) {
              card.addEventListener('click', handleCardClick);
         }
@@ -130,17 +120,14 @@ export function initMemoryGame(winCallback, loseCallback, savedState) {
     lockBoard = false;
 
     if (savedState && savedState.deck) {
-        // Load from saved state
         state = savedState;
     } else {
-        // Create a new game state
         state.deck = [...CARDS, ...CARDS]
             .sort(() => 0.5 - Math.random())
             .map(value => ({ value, isFlipped: false, isMatched: false }));
         state.turnsTaken = 0;
         state.matchedPairs = 0;
-        setGameState(state); // Save the initial new game state
+        setGameState(state);
     }
-
     renderBoard();
 }
