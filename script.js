@@ -61,19 +61,16 @@ const MAX_TURNS = 12;
 
 // Banner Functions
 function startQuoteFlipper() {
-    // Display initial random quote
     const randomIndex = Math.floor(Math.random() * kinkyQuotes.length);
     quoteBanner.textContent = kinkyQuotes[randomIndex];
-
-    // Start the interval for flipping quotes
     quoteInterval = setInterval(() => {
         quoteBanner.style.opacity = '0';
         setTimeout(() => {
             const randomIndex = Math.floor(Math.random() * kinkyQuotes.length);
             quoteBanner.textContent = kinkyQuotes[randomIndex];
             quoteBanner.style.opacity = '1';
-        }, 1000); // Wait for fade out
-    }, 10000); // Change quote every 10 seconds
+        }, 1000);
+    }, 10000);
 }
 
 // Timer and Data Functions
@@ -89,13 +86,11 @@ function loadData() {
     const currentTimer = JSON.parse(localStorage.getItem('chastity_current_timer'));
     const history = JSON.parse(localStorage.getItem('chastity_history')) || [];
     
-    // Sort history by end time in descending order (newest first)
     history.sort((a, b) => b.endTime - a.endTime);
 
     renderHistory(history);
 
     if (currentTimer && currentTimer.startTime) {
-        // Hide timer options when a timer is active
         timerOptionsEl.style.display = 'none';
 
         const startTime = currentTimer.startTime;
@@ -118,10 +113,8 @@ function loadData() {
             pinDisplay.style.display = 'none';
         }
     } else {
-        // Show timer options when no timer is active
         timerOptionsEl.style.display = 'block';
         
-        // If no timer is active, show a generated PIN for the next session
         let pendingPin = localStorage.getItem('chastity_pending_pin');
         if (!pendingPin) {
             pendingPin = generatePin();
@@ -182,7 +175,7 @@ function deleteHistoryItem(index) {
     if (confirm("Are you sure you want to delete this session? This action cannot be undone.")) {
         history.splice(index, 1);
         localStorage.setItem('chastity_history', JSON.stringify(history));
-        loadData(); // Reload the list
+        loadData();
     }
 }
 
@@ -195,7 +188,6 @@ function startUpdateInterval(startTime) {
 
         const currentTimer = JSON.parse(localStorage.getItem('chastity_current_timer'));
         
-        // Check for penalty first, as it takes precedence
         const penaltyEndTime = JSON.parse(localStorage.getItem('chastity_penalty_end'));
         if (penaltyEndTime) {
             const penaltyTimeLeft = penaltyEndTime - now;
@@ -210,7 +202,6 @@ function startUpdateInterval(startTime) {
             }
         }
 
-        // If no active penalty, check for minimum time
         if (currentTimer.isMinimum && currentTimer.minEndTime) {
             const minTimeLeft = currentTimer.minEndTime - now;
             if (minTimeLeft > 0) {
@@ -225,7 +216,6 @@ function startUpdateInterval(startTime) {
                 unlockButton.style.display = 'block';
             }
         } else {
-            // Default state: No penalty, no minimum time requirement
             timerMessageEl.textContent = '';
             unlockButton.style.display = 'block';
         }
@@ -328,10 +318,8 @@ function initGame() {
         const card = document.createElement('div');
         card.classList.add('card');
         card.dataset.value = cardValue;
-        card.innerHTML = `
-            <span class="card-front-content">?</span>
-            <span class="card-content">${cardValue}</span>
-        `;
+        // Start with the question mark
+        card.textContent = '?';
         card.addEventListener('click', handleCardClick);
         gameBoard.appendChild(card);
     });
@@ -342,6 +330,8 @@ function handleCardClick(event) {
     const clickedCard = event.currentTarget;
     if (clickedCard.classList.contains('is-flipped')) return;
 
+    // Show the emoji on the card
+    clickedCard.textContent = clickedCard.dataset.value;
     clickedCard.classList.add('is-flipped');
 
     if (!firstCard) {
@@ -379,6 +369,9 @@ function disableCards() {
 function unflipCards() {
     lockBoard = true;
     setTimeout(() => {
+        // Change text back to question mark
+        firstCard.textContent = '?';
+        secondCard.textContent = '?';
         firstCard.classList.remove('is-flipped');
         secondCard.classList.remove('is-flipped');
         resetBoard();
@@ -414,7 +407,6 @@ function loseGame() {
     hideGameScreen();
 }
 
-// Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     startQuoteFlipper();
     loadData();
