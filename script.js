@@ -204,9 +204,9 @@ function startUpdateInterval(startTime) {
                 const seconds = Math.floor((penaltyTimeLeft % (1000 * 60)) / 1000);
                 timerMessageEl.textContent = `Penalty: Cannot request unlock for ${String(minutes).padStart(2, '0')}m ${String(seconds).padStart(2, '0')}s.`;
                 unlockButton.style.display = 'none';
-                return; // Penalty is active, so we don't need to check anything else
+                return;
             } else {
-                localStorage.removeItem('chastity_penalty_end'); // Penalty expired, remove it and continue to normal checks
+                localStorage.removeItem('chastity_penalty_end');
             }
         }
 
@@ -267,7 +267,7 @@ function startTimer() {
 
     localStorage.setItem('chastity_current_timer', JSON.stringify(currentTimer));
     localStorage.removeItem('chastity_pending_pin');
-    localStorage.removeItem('chastity_penalty_end'); // Clear any old penalty
+    localStorage.removeItem('chastity_penalty_end');
     loadData();
 }
 
@@ -279,16 +279,15 @@ function resetTimer() {
             startTime: currentTimer.startTime, 
             endTime: endTime, 
             comment: '',
-            pin: currentTimer.pin // Save the PIN to the history item
+            pin: currentTimer.pin
         };
         const history = JSON.parse(localStorage.getItem('chastity_history')) || [];
         history.push(newHistoryItem);
         localStorage.setItem('chastity_history', JSON.stringify(history));
         
-        // Display the PIN and set up a new one for the next session
         displayPin(currentTimer.pin);
         localStorage.removeItem('chastity_current_timer');
-        localStorage.removeItem('chastity_penalty_end'); // Clear penalty on successful reset
+        localStorage.removeItem('chastity_penalty_end');
     }
     loadData();
 }
@@ -330,10 +329,8 @@ function initGame() {
         card.classList.add('card');
         card.dataset.value = cardValue;
         card.innerHTML = `
-            <div class="card-inner">
-                <div class="card-front">?</div>
-                <div class="card-back">${cardValue}</div>
-            </div>
+            <span class="card-front-content">?</span>
+            <span class="card-content">${cardValue}</span>
         `;
         card.addEventListener('click', handleCardClick);
         gameBoard.appendChild(card);
@@ -395,7 +392,6 @@ function resetBoard() {
 function winGame() {
     alert("You have proven your patience. The Keyholder grants you this one reprieve.");
     
-    // Stop the timer on win
     clearInterval(interval);
     const currentTimer = JSON.parse(localStorage.getItem('chastity_current_timer'));
     if (currentTimer) {
@@ -411,13 +407,11 @@ function winGame() {
 function loseGame() {
     alert("Your impatience is... disappointing. You have failed the test. You are now penalised and cannot request an unlock for 30 minutes.");
     
-    // Set a 30-minute penalty from the current time
     const penaltyDuration = 30 * 60 * 1000;
     const penaltyEndTime = new Date().getTime() + penaltyDuration;
     localStorage.setItem('chastity_penalty_end', JSON.stringify(penaltyEndTime));
 
     hideGameScreen();
-    // No need to re-initialize the game here, as the user is sent back to the timer.
 }
 
 // Initialize on page load
