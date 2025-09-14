@@ -33,7 +33,7 @@
 
             <div class="actions">
                 <button class="start" id="start-button" onclick="startTimer()">Begin Lock-up</button>
-                <button class="request-unlock" id="unlock-button" style="display:none;" onclick="requestUnlock()">Request Unlock</button>
+                <button class="request-unlock" id="unlock-button" style="display:none;" onclick="showGameSelection()">Attempt Unlock</button>
                 <button class="reset" id="reset-button" style="display:none;" onclick="resetTimer()">End Session</button>
             </div>
             
@@ -50,14 +50,31 @@
               <button class="danger" onclick="resetApp()">Reset All Data</button>
             </div>
         </div>
+
+        <div id="game-selection-screen" style="display:none;">
+            <h2>Choose Your Test</h2>
+            <p>Prove your devotion by choosing a game to earn your release.</p>
+            <div class="actions">
+                <button onclick="startGame('memory')">The Keyholder's Memory</button>
+                <button onclick="startGame('tictactoe')">Tic-Tac-Toe</button>
+                <button onclick="startGame('guessthenumber')">Guess the Number</button>
+            </div>
+        </div>
         
         <div id="game-screen" style="display:none;">
-            <h2>The Keyholder's Memory</h2>
-            <p>Prove your devotion to your keyholder by solving this puzzle, and you may earn your release.</p>
-            <div class="turns-counter">Turns left: <span id="turns-left"></span></div>
-            <div class="game-board" id="game-board"></div>
-            <div class="actions">
-                <button onclick="hideGameScreen()">Return to Timer</button>
+            <h2 id="game-title"></h2>
+            <p id="game-description"></p>
+            <div class="turns-counter" id="turns-counter" style="display: none;">Turns left: <span id="turns-left"></span></div>
+
+            <div id="memory-game-container" class="game-board" style="display: none;"></div>
+
+            <div id="tictactoe-game-container" class="game-board" style="display: none;"></div>
+            
+            <div id="guessthenumber-game-container" style="display: none;">
+                <p id="guess-prompt"></p>
+                <p id="guess-message"></p>
+                <input type="number" id="guess-input" placeholder="Enter your guess">
+                <button onclick="checkGuess()">Submit Guess</button>
             </div>
         </div>
     </div>
