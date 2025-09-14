@@ -1,10 +1,10 @@
-// This module handles all DOM manipulations and UI updates.
 const elements = {
     timerScreen: document.getElementById('timer-screen'),
     gameSelectionScreen: document.getElementById('game-selection-screen'),
     gameScreen: document.getElementById('game-screen'),
     timer: document.getElementById('timer'),
     timerMessage: document.getElementById('timer-message'),
+    lockdownTimer: document.getElementById('lockdown-timer'),
     startDate: document.getElementById('startDate'),
     timerOptions: document.getElementById('timer-options'),
     startButton: document.getElementById('start-button'),
@@ -51,7 +51,6 @@ export function switchScreen(screenId) {
 }
 
 export function updateTimerDisplay(durationMs) {
-    // Safeguard to prevent negative display
     const safeDuration = Math.max(0, durationMs);
     const days = Math.floor(safeDuration / (1000 * 60 * 60 * 24));
     const hours = Math.floor((safeDuration % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
@@ -85,6 +84,10 @@ export function updateTimerMessage(message = '') {
     elements.timerMessage.textContent = message;
 }
 
+export function updateLockdownTimer(message = '') {
+    elements.lockdownTimer.textContent = message;
+}
+
 export function toggleUnlockButton(visible) {
     elements.unlockButton.style.display = visible ? 'block' : 'none';
 }
@@ -109,7 +112,6 @@ export function renderHistory(history, saveCommentCallback, deleteHistoryItemCal
                 const gameName = attempt.name.charAt(0).toUpperCase() + attempt.name.slice(1);
                 return `<li>${gameName} (${attempt.result})${penaltyText}</li>`;
             }).join('');
-
             gamesHtml = `
                 <div class="game-history">
                     <div class="game-history-toggle" data-index="${index}">▶ Show Game History (${item.gameAttempts.length} attempts)</div>
@@ -166,7 +168,6 @@ export function showAchievement(achievement) {
     const toast = document.getElementById('achievement-toast');
     document.getElementById('achievement-name').textContent = achievement.name;
     document.getElementById('achievement-desc').textContent = achievement.description;
-
     toast.classList.add('show');
     setTimeout(() => {
         toast.classList.remove('show');
