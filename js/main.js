@@ -113,6 +113,7 @@ function winGame() {
     ui.updateTimerDisplay(duration);
     ui.showFinishedState(state.currentTimer.pin, endTime);
     
+    // This now correctly switches screens after the modal is closed.
     ui.showModal("Success!", "You have proven your patience. You may now end your session.", false, () => {
         ui.switchScreen('timer-screen');
     });
@@ -122,13 +123,15 @@ function loseGame() {
     const penaltyEndTime = Date.now() + PENALTY_DURATION_MS;
     setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
 
-    // Add penalty time to a running total for the session history
     let totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0;
     totalPenalty += PENALTY_DURATION_MS;
     setLocalStorage(STORAGE_KEY.TOTAL_PENALTY, totalPenalty);
 
+    // This now correctly switches screens after the modal is closed.
     ui.showModal("Failure", "You have failed the test. A 30-minute penalty has been applied.", false, () => {
         ui.switchScreen('timer-screen');
+        // We restart the timer interval to show the penalty countdown
+        timer.startUpdateInterval(); 
     });
 }
 
