@@ -1,6 +1,8 @@
 import { KINKY_QUOTES, QUOTE_FLIP_INTERVAL_MS, STORAGE_KEY, PENALTY_DURATION_MS } from './constants.js';
 import * as ui from './ui.js';
 import * as timer from './timer.js';
+import { ACHIEVEMENTS, RANDOM_EVENTS, WHEEL_OUTCOMES } from './constants.js';
+import { initWheel } from './game_wheel.js';
 
 // Import game initializers
 import { initMemoryGame } from './game_memory.js';
@@ -15,6 +17,7 @@ let state = {
     history: [],
     pendingPin: null,
     gameAttempts: [],
+    achievements: {},
 };
 
 function getLocalStorage(key) {
@@ -39,10 +42,19 @@ function loadState() {
     state.currentTimer = getLocalStorage(STORAGE_KEY.CURRENT_TIMER);
     state.history = getLocalStorage(STORAGE_KEY.HISTORY) || [];
     state.pendingPin = getLocalStorage(STORAGE_KEY.PENDING_PIN);
+    state.achievements = getLocalStorage('chastity_achievements') || {}; // Load achievements
 
     if (!state.currentTimer && !state.pendingPin) {
         state.pendingPin = generatePin();
         setLocalStorage(STORAGE_KEY.PENDING_PIN, state.pendingPin);
+    }
+}
+
+function grantAchievement(id) {
+    if (!state.achievements[id]) {
+        state.achievements[id] = true;
+        setLocalStorage('chastity_achievements', state.achievements);
+        ui.showAchievement(ACHIEVEMENTS[id]);
     }
 }
 
@@ -87,14 +99,58 @@ function startNewTimer() {
 }
 
 function attemptUnlock() {
+    // Random Event Trigger (e.g., 25% chance on each attempt)
+    if (Math.random() < 0.25) {
+        const event = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
+        setLocalStorage('chastity_active_event', { ...event, expiry: Date.now() + event.duration });
+        ui.showModal(event.name, event.description);
+        return; // Stop the unlock process
+    }
+
+    const activeEvent = getLocalStorage('chastity_active_event');
+    if (activeEvent && Date.now() < activeEvent.expiry && activeEvent.name.includes('Lockdown')) {
+         ui.showModal(activeEvent.name, "You cannot attempt an unlock during a lockdown event.");
+         return;
+    }
+    
+    // Previous penalty check
     const penaltyEnd = getLocalStorage(STORAGE_KEY.PENALTY_END);
     if (penaltyEnd && Date.now() < penaltyEnd) {
         const minutes = Math.ceil((penaltyEnd - Date.now()) / 60000);
         ui.showModal("Penalty Active", `You cannot attempt an unlock for another ${minutes} minute(s).`);
         return;
     }
-    ui.switchScreen('game-selection-screen');
+    
+    // Show the Wheel of Fortune screen
+    ui.switchScreen('wheel-screen');
+    initWheel(handleWheelResult);
 }
+
+function handleWheelResult(outcome) {
+    ui.showModal("Wheel Result", `The wheel landed on: ${outcome.text}`);
+    setLocalStorage('chastity_wheel_modifier', outcome.effect || null);
+
+    switch(outcome.type) {
+        case 'addTime':
+            state.currentTimer.startTime -= outcome.value; // Effectively adds time
+            setLocalStorage(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
+            break;
+        case 'subtractTime':
+            state.currentTimer.startTime += outcome.value; // Effectively subtracts time
+            setLocalStorage(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
+            break;
+        case 'play':
+            setTimeout(() => ui.switchScreen('game-selection-screen'), 1500);
+            break;
+        case 'nothing':
+            setTimeout(() => ui.switchScreen('timer-screen'), 1500);
+            break;
+        case 'modifier':
+            setTimeout(() => ui.switchScreen('game-selection-screen'), 1500);
+            break;
+    }
+}
+
 
 // js/main.js
 
@@ -133,23 +189,31 @@ function winGame() {
 }
 
 function loseGame() {
-    // CRITICAL: Clear the saved game state
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
 
-    // Log the losing game attempt with the penalty
-    state.gameAttempts.push({ name: state.currentGame, result: 'Loss', penalty: PENALTY_DURATION_MS });
+    let penalty = PENALTY_DURATION_MS;
+    const wheelModifier = getLocalStorage('chastity_wheel_modifier');
+    const activeEvent = getLocalStorage('chastity_active_event');
 
-    const penaltyEndTime = Date.now() + PENALTY_DURATION_MS;
+    if (wheelModifier === 'doublePenalty') penalty *= 2;
+    if (activeEvent?.effect === 'halfPenalty' && Date.now() < activeEvent.expiry) penalty /= 2;
+    
+    state.gameAttempts.push({ name: state.currentGame, result: 'Loss', penalty });
+    
+    if (state.gameAttempts.filter(a => a.result === 'Loss').length >= 3) {
+        grantAchievement('lose3');
+    }
+
+    const penaltyEndTime = Date.now() + penalty;
     setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
 
     let totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0;
-    totalPenalty += PENALTY_DURATION_MS;
+    totalPenalty += penalty;
     setLocalStorage(STORAGE_KEY.TOTAL_PENALTY, totalPenalty);
 
-    // This modal now correctly switches the screen back after it's closed
-    ui.showModal("Failure", "A 30-minute penalty has been applied.", false, () => {
+    ui.showModal("Failure", `A penalty of ${penalty / 60000} minutes has been applied.`, false, () => {
         ui.switchScreen('timer-screen');
-        timer.startUpdateInterval(); // Restart the timer to show the penalty countdown
+        timer.startUpdateInterval(); 
     });
 }
 
@@ -157,6 +221,12 @@ function endSession() {
     if (!state.currentTimer) return;
     
     const endTime = Date.now();
+    const duration = endTime - state.currentTimer.startTime;
+    
+    // Check for duration-based achievements
+    if (duration >= 7 * 24 * 60 * 60 * 1000) grantAchievement('lock7d');
+    else if (duration >= 24 * 60 * 60 * 1000) grantAchievement('lock24h');
+
     const totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0;
 
     const historyItem = {
@@ -165,8 +235,31 @@ function endSession() {
         pin: state.currentTimer.pin,
         comment: '',
         penaltyTime: totalPenalty,
-        gameAttempts: state.gameAttempts, // <-- Add the logged games to the history item
+        gameAttempts: state.gameAttempts,
     };
+
+    state.history.unshift(historyItem);
+    saveHistory();
+
+    // Clear the current session data
+    state.currentTimer = null;
+    state.gameAttempts = [];
+    localStorage.removeItem(STORAGE_KEY.CURRENT_TIMER);
+    localStorage.removeItem(STORAGE_KEY.TOTAL_PENALTY);
+    localStorage.removeItem(STORAGE_KEY.PENALTY_END);
+    localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+    localStorage.removeItem('chastity_wheel_modifier');
+    localStorage.removeItem('chastity_active_event');
+
+
+    state.pendingPin = generatePin();
+    setLocalStorage(STORAGE_KEY.PENDING_PIN, state.pendingPin);
+
+    loadState();
+    ui.renderUIForNoTimer(state.pendingPin);
+    ui.renderHistory(state.history, saveComment, deleteHistoryItem);
+    ui.switchScreen('timer-screen');
+}
 
     state.history.unshift(historyItem);
     saveHistory();
