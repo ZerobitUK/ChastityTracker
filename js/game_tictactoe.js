@@ -23,20 +23,37 @@ function handleCellClick(event) {
     setTimeout(aiMove, 500);
 }
 
+function lockBoard() {
+    const cells = gameContainer.querySelectorAll('.tictactoe-cell');
+    cells.forEach(cell => {
+        // This removes the click listener from any remaining empty cells
+        const newCell = cell.cloneNode(true);
+        cell.parentNode.replaceChild(newCell, cell);
+    });
+}
+
 function aiMove() {
+    // 1. Check if AI can win
     let move = findBestMove(AI);
     if (move !== -1) {
         board[move] = AI;
         renderBoard();
-        setTimeout(() => onLose(), 100);
+        if (checkWin(AI)) {
+            lockBoard(); // Immediately lock the board
+            setTimeout(() => onLose(), 100); // AI wins, player loses
+        }
         return;
     }
+    
+    // 2. Check if player can be blocked
     move = findBestMove(PLAYER);
     if (move !== -1) {
         board[move] = AI;
         renderBoard();
         return;
     }
+
+    // 3. Take center, corner, or any remaining spot...
     if (board[4] === '') {
         board[4] = AI;
         renderBoard();
