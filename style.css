@@ -173,10 +173,10 @@ textarea.history-comment { width: 95%; padding: 10px; margin-top: 10px; border-r
     transform: rotateY(180deg);
     cursor: default;
 }
-.minefield-tile.safe {
+.minefield-tile.is-flipped.safe {
     background-color: var(--button-start);
 }
-.minefield-tile.mine {
+.minefield-tile.is-flipped.mine {
     background-color: var(--button-reset);
 }
 .reset-app-button {
