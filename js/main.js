@@ -207,12 +207,13 @@ function loseGame() {
     let totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0;
     totalPenalty += penalty;
     setLocalStorage(STORAGE_KEY.TOTAL_PENALTY, totalPenalty);
+
+    // This modal now correctly switches the screen back after it's closed
     ui.showModal("Failure", `A penalty of ${penalty / 60000} minutes has been applied.`, false, () => {
-        ui.switchScreen('timer-screen');
+        ui.switchScreen('timer-screen'); // ALWAYS return to the timer screen
         timer.startUpdateInterval(); 
     });
 }
-
 function endSession() {
     if (!state.currentTimer) return;
     const endTime = Date.now();
