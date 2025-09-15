@@ -182,3 +182,6 @@ textarea.history-comment { width: 95%; padding: 10px; margin-top: 10px; border-r
 .reset-app-button {
     display: none;
 }
+button.start-locktober {
+    background-color: #ff8c00; /* Orange for October */
+}
