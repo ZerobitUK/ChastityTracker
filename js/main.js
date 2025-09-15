@@ -206,8 +206,13 @@ function loseGame() {
     if (isDoubleOrNothing) {
         const elapsedTime = Date.now() - state.currentTimer.startTime;
         penalty = elapsedTime * 2;
-        const penaltyHours = (penalty / (1000 * 60 * 60)).toFixed(1);
-        penaltyMessage = `You failed Sudden Death! A massive ${penaltyHours}-hour penalty has been applied.`;
+        
+        // Create a more readable penalty message
+        const days = Math.floor(penalty / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((penalty % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((penalty % (1000 * 60 * 60)) / (1000 * 60));
+        penaltyMessage = `You failed Sudden Death! A massive penalty of ${days}d ${hours}h ${minutes}m has been applied.`;
+
         localStorage.removeItem('chastity_is_double_or_nothing'); // Clear the flag
     } else {
         penalty = PENALTY_DURATION_MS;
