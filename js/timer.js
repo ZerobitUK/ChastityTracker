@@ -13,7 +13,6 @@ function getLocalStorage(key) {
     }
 }
 
-// This function now correctly wraps the update logic
 export function startUpdateInterval() {
     const update = () => {
         const currentTimer = getLocalStorage(STORAGE_KEY.CURRENT_TIMER);
@@ -56,9 +55,11 @@ export function startUpdateInterval() {
         const penaltyEnd = getLocalStorage(STORAGE_KEY.PENALTY_END);
         if (penaltyEnd && now < penaltyEnd) {
             const timeLeft = penaltyEnd - now;
-            const minutes = Math.floor((timeLeft / (1000 * 60)) % 60);
-            const seconds = Math.floor((timeLeft / 1000) % 60);
-            updateTimerMessage(`Penalty: Cannot unlock for ${minutes}m ${seconds}s.`);
+            const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+            updateTimerMessage(`Penalty: Cannot unlock for ${days}d ${hours}h ${minutes}m ${seconds}s.`);
             toggleUnlockButton(false);
             return;
         }
@@ -82,7 +83,6 @@ export function startUpdateInterval() {
     update();
     timerInterval = setInterval(update, 1000);
 }
-
 
 export function stopUpdateInterval() {
     clearInterval(timerInterval);
