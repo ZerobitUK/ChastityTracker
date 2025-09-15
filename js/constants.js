@@ -34,7 +34,7 @@ export const RANDOM_EVENTS = [
 export const WHEEL_OUTCOMES = [
     { text: 'Safe', type: 'safe' },
     { text: '1 Hour Penalty', type: 'penalty', duration: 60 * 60 * 1000 },
-    { text: 'Safe', type: 'safe' },
+    { text: '15 Min Penalty', type: 'penalty', duration: 15 * 60 * 1000 },
     { text: '30 Min Penalty', type: 'penalty', duration: 30 * 60 * 1000 },
     { text: 'Safe', type: 'safe' },
     { text: 'Double or Nothing', type: 'double' },
