@@ -154,21 +154,25 @@ function handleWheelResult(outcome) {
         setTimeout(() => ui.switchScreen('game-selection-screen'), 500);
     } else { // Double or Nothing
         setLocalStorage('chastity_is_double_or_nothing', true);
-        ui.showModal("Double or Nothing!", "You must win your next game. If you lose, your penalty will be DOUBLE your currently locked time.");
-        setTimeout(() => ui.switchScreen('game-selection-screen'), 500);
+        ui.showModal("Double or Nothing!", "You must win the next high-pressure game. If you lose, your penalty will be DOUBLE your currently locked time.", false, () => {
+             // Directly start the high-pressure game
+            startGame('guessthenumber', true);
+        });
     }
 }
 
-function startGame(gameType) {
+function startGame(gameType, isSuddenDeath = false) {
     setLocalStorage('chastity_selected_game', gameType);
     ui.switchScreen('game-screen');
     document.querySelectorAll('.game-container').forEach(c => c.style.display = 'none');
     state.currentGame = gameType;
     const savedGameState = getLocalStorage(STORAGE_KEY.GAME_STATE);
-    if (gameType === 'memory') {
+    
+    // Pass the sudden death flag to the game initialization
+    if (gameType === 'guessthenumber') {
+        initGuessTheNumber(winGame, loseGame, isSuddenDeath);
+    } else if (gameType === 'memory') {
         initMemoryGame(winGame, loseGame, savedGameState);
-    } else if (gameType === 'guessthenumber') {
-        initGuessTheNumber(winGame, loseGame);
     } else if (gameType === 'tictactoe') {
         initTicTacToe(winGame, loseGame);
     } else if (gameType === 'simonsays') {
@@ -203,7 +207,7 @@ function loseGame() {
         const elapsedTime = Date.now() - state.currentTimer.startTime;
         penalty = elapsedTime * 2;
         const penaltyHours = (penalty / (1000 * 60 * 60)).toFixed(1);
-        penaltyMessage = `You failed the Double or Nothing! A massive ${penaltyHours}-hour penalty has been applied.`;
+        penaltyMessage = `You failed Sudden Death! A massive ${penaltyHours}-hour penalty has been applied.`;
         localStorage.removeItem('chastity_is_double_or_nothing'); // Clear the flag
     } else {
         penalty = PENALTY_DURATION_MS;
