@@ -10,14 +10,15 @@
 
 .wheel-pointer {
     position: absolute;
-    top: -10px;
-    left: 50%;
-    transform: translateX(-50%);
+    /* Position the pointer to point right */
+    top: 50%;
+    left: 100%;
+    transform: translateY(-50%) translateX(-10px);
     width: 0;
     height: 0;
-    border-left: 15px solid transparent;
-    border-right: 15px solid transparent;
-    border-top: 30px solid var(--primary-color);
+    border-top: 15px solid transparent;
+    border-bottom: 15px solid transparent;
+    border-left: 30px solid var(--primary-color);
     z-index: 2;
 }
 
@@ -25,32 +26,42 @@
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    border: 5px solid var(--primary-color);
+    border: 3px solid #444; /* Thinner border */
     position: relative;
     overflow: hidden;
     transition: transform 5s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-.wheel-segment {
-    position: absolute;
-    width: 50%;
-    height: 50%;
     background-color: var(--secondary-color);
-    transform-origin: 100% 100%; /* Anchor to the center of the wheel */
-    clip-path: polygon(0 0, 100% 0, 100% 100%); /* Create the wedge shape */
-    display: flex; /* Use flexbox for content positioning */
-    align-items: center; /* Vertically center content */
-    justify-content: flex-start; /* Align content to the start (outer edge) */
-    box-sizing: border-box;
-    font-weight: bold;
+}
+
+/* This is a container for each spoke + text */
+.wheel-spoke-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: center center;
+}
+
+/* This is the visual line for the spoke */
+.wheel-spoke-line {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 1px;
+    height: 50%;
+    background-color: #444;
+    transform: translateX(-50%);
+}
+
+/* This is the text label at the end of the spoke */
+.wheel-spoke-text {
+    position: absolute;
+    top: 15%; /* Position near the outer edge */
+    left: 50%;
+    transform: translateX(-50%); /* Center the text horizontally */
     color: var(--text-color);
-    text-align: left;
-    padding-left: 10px; /* Add some padding from the center */
+    font-weight: bold;
+    font-size: 0.9em;
+    white-space: nowrap;
 }
-
-.wheel-segment:nth-child(odd) {
-    background-color: #333;
-}
-
-/* No separate .wheel-segment-content class needed with this approach */
-/* The text will be directly inside .wheel-segment and rotated by JS */
