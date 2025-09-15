@@ -88,6 +88,31 @@ function startNewTimer() {
     timer.startUpdateInterval();
 }
 
+function startLocktoberTimer() {
+    ui.showModal(
+        "Confirm Locktober",
+        "This will lock you for 31 days. You will NOT be able to attempt an unlock during this time. Are you absolutely sure?",
+        true,
+        () => {
+            const now = Date.now();
+            const thirtyOneDaysInMs = 31 * 24 * 60 * 60 * 1000;
+
+            state.currentTimer = {
+                startTime: now,
+                pin: state.pendingPin,
+                isMinimum: true,
+                minEndTime: now + thirtyOneDaysInMs,
+            };
+
+            setLocalStorage(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
+            localStorage.removeItem(STORAGE_KEY.PENDING_PIN);
+            state.pendingPin = null;
+            ui.renderUIForActiveTimer(now);
+            timer.startUpdateInterval();
+        }
+    );
+}
+
 function attemptUnlock() {
     const activeLockdown = getLocalStorage('chastity_active_lockdown');
     if (activeLockdown && Date.now() < activeLockdown.expiry) {
@@ -280,6 +305,7 @@ function startQuoteFlipper() {
 
 function setupEventListeners() {
     document.getElementById('start-button').addEventListener('click', startNewTimer);
+    document.getElementById('start-locktober-button').addEventListener('click', startLocktoberTimer);
     document.getElementById('unlock-button').addEventListener('click', attemptUnlock);
     document.getElementById('reset-button').addEventListener('click', endSession);
     document.getElementById('reset-app-button').addEventListener('click', resetApp);
