@@ -9,6 +9,7 @@ const elements = {
     startDate: document.getElementById('startDate'),
     timerOptions: document.getElementById('timer-options'),
     startButton: document.getElementById('start-button'),
+    startLocktoberButton: document.getElementById('start-locktober-button'),
     unlockButton: document.getElementById('unlock-button'),
     resetButton: document.getElementById('reset-button'),
     pinDisplay: document.getElementById('pin-display'),
@@ -23,7 +24,7 @@ const elements = {
 };
 
 let confirmCallback = null;
-let cancelCallback = null; // Added for Double or Nothing
+let cancelCallback = null;
 
 elements.modalCloseBtn.addEventListener('click', () => {
     if (typeof cancelCallback === 'function') {
@@ -73,6 +74,7 @@ export function renderUIForActiveTimer(startTime) {
     elements.timerOptions.style.display = 'none';
     elements.startDate.textContent = new Date(startTime).toLocaleString();
     elements.startButton.style.display = 'none';
+    elements.startLocktoberButton.style.display = 'none';
     elements.unlockButton.style.display = 'block';
     elements.resetButton.style.display = 'none';
     elements.pinDisplay.style.display = 'none';
@@ -83,6 +85,7 @@ export function renderUIForNoTimer(pendingPin) {
     elements.timer.textContent = '00d : 00h : 00m : 00s';
     elements.startDate.textContent = 'N/A';
     elements.startButton.style.display = 'block';
+    elements.startLocktoberButton.style.display = 'block';
     elements.unlockButton.style.display = 'none';
     elements.resetButton.style.display = 'none';
     elements.timerMessage.textContent = '';
@@ -101,7 +104,6 @@ export function updateLockdownTimer(message = '') {
 export function updateDoubledPenaltyTimer(message = '') {
     elements.doubledPenaltyTimer.textContent = message;
 }
-
 
 export function toggleUnlockButton(visible) {
     elements.unlockButton.style.display = visible ? 'block' : 'none';
