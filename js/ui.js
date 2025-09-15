@@ -27,8 +27,13 @@ let confirmCallback = null;
 let cancelCallback = null;
 
 elements.modalCloseBtn.addEventListener('click', () => {
+    // If a specific cancel action exists, run it.
     if (typeof cancelCallback === 'function') {
         cancelCallback();
+    } 
+    // Otherwise, if there's no confirm button, the "Close" button should run the primary action.
+    else if (elements.modalConfirmBtn.style.display === 'none' && typeof confirmCallback === 'function') {
+        confirmCallback();
     }
     closeModal();
 });
