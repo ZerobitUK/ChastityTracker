@@ -36,32 +36,21 @@
     width: 50%;
     height: 50%;
     background-color: var(--secondary-color);
-    transform-origin: 100% 100%;
-    clip-path: polygon(0 0, 100% 0, 100% 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    /* Removed padding-left from here as it interferes with rotation */
+    transform-origin: 100% 100%; /* Anchor to the center of the wheel */
+    clip-path: polygon(0 0, 100% 0, 100% 100%); /* Create the wedge shape */
+    display: flex; /* Use flexbox for content positioning */
+    align-items: center; /* Vertically center content */
+    justify-content: flex-start; /* Align content to the start (outer edge) */
     box-sizing: border-box;
     font-weight: bold;
     color: var(--text-color);
-    text-align: left; /* Align text within its container */
+    text-align: left;
+    padding-left: 10px; /* Add some padding from the center */
 }
 
 .wheel-segment:nth-child(odd) {
     background-color: #333;
 }
 
-/* New CSS to properly align and rotate text within segments */
-.wheel-segment-content {
-    position: absolute;
-    top: 50%; /* Position near the middle of the segment */
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(0deg); /* Initial rotation, will be overwritten by JS */
-    width: 100%; /* Take full width to allow text alignment */
-    text-align: left; /* Align text within its content box */
-    padding-left: 20px; /* Add padding here for better spacing */
-    box-sizing: border-box;
-    white-space: nowrap; /* Prevent text from wrapping */
-    font-size: 0.9em; /* Adjust font size if needed */
-}
+/* No separate .wheel-segment-content class needed with this approach */
+/* The text will be directly inside .wheel-segment and rotated by JS */
