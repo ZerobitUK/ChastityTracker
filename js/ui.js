@@ -1,3 +1,5 @@
+import * as sounds from './sounds.js';
+
 const elements = {
     timerScreen: document.getElementById('timer-screen'),
     gameScreen: document.getElementById('game-screen'),
@@ -20,12 +22,21 @@ const elements = {
     modalMessage: document.getElementById('modal-message'),
     modalConfirmBtn: document.getElementById('modal-confirm-btn'),
     modalCloseBtn: document.getElementById('modal-close-btn'),
-    // *** NEW: Reference to the practice games panel ***
     practiceGamesPanel: document.getElementById('practice-games-panel'),
+    notesModalContainer: document.getElementById('notes-modal-container'),
+    notesModalTextarea: document.getElementById('notes-modal-textarea'),
+    notesModalSaveBtn: document.getElementById('notes-modal-save-btn'),
+    notesModalCloseBtn: document.getElementById('notes-modal-close-btn'),
+    revealPinBtn: document.getElementById('reveal-pin-btn'),
+    keyholderEmailBtn: document.getElementById('keyholder-email-btn'),
 };
 
 let confirmCallback = null;
 let cancelCallback = null;
+
+let currentNotesIndex = null;
+let saveNotesCallback = null;
+
 
 elements.modalCloseBtn.addEventListener('click', () => {
     if (typeof cancelCallback === 'function') {
@@ -49,6 +60,31 @@ function closeModal() {
     confirmCallback = null;
     cancelCallback = null;
 }
+
+// --- Notes Modal Logic ---
+
+export function setupNotesModal(saveCallback) {
+    saveNotesCallback = saveCallback;
+    elements.notesModalSaveBtn.addEventListener('click', () => {
+        if (currentNotesIndex !== null) {
+            saveNotesCallback(currentNotesIndex, elements.notesModalTextarea.value);
+        }
+        closeNotesModal();
+    });
+    elements.notesModalCloseBtn.addEventListener('click', closeNotesModal);
+}
+
+export function showNotesModal(index, currentText) {
+    currentNotesIndex = index;
+    elements.notesModalTextarea.value = currentText;
+    elements.notesModalContainer.classList.add('visible');
+}
+
+function closeNotesModal() {
+    elements.notesModalContainer.classList.remove('visible');
+    currentNotesIndex = null;
+}
+
 
 export function showModal(title, message, showConfirm = false, onConfirm = null, onCancel = null) {
     elements.modalTitle.textContent = title;
@@ -75,7 +111,6 @@ export function updateTimerDisplay(durationMs) {
 }
 
 export function renderUIForActiveTimer(startTime) {
-    // *** HIDE setup options and practice games when timer starts ***
     elements.timerOptions.style.display = 'none';
     elements.practiceGamesPanel.style.display = 'none';
 
@@ -88,7 +123,6 @@ export function renderUIForActiveTimer(startTime) {
 }
 
 export function renderUIForNoTimer(pendingPin) {
-    // *** SHOW setup options and practice games when there is no timer ***
     elements.timerOptions.style.display = 'block';
     elements.practiceGamesPanel.style.display = 'block';
     
@@ -119,7 +153,7 @@ export function toggleUnlockButton(visible) {
     elements.unlockButton.style.display = visible ? 'block' : 'none';
 }
 
-export function renderHistory(history, saveCommentCallback, deleteHistoryItemCallback) {
+export function renderHistory(history, saveCommentCallback, showNotesModalCallback) {
     elements.historyContainer.innerHTML = '';
     if (history.length === 0) {
         elements.historyContainer.textContent = 'No past sessions to display.';
@@ -159,15 +193,22 @@ export function renderHistory(history, saveCommentCallback, deleteHistoryItemCal
             <p><strong>Duration:</strong> ${durationString}</p>
             <p><strong>Combination:</strong> ${item.pin}</p>
             ${gamesHtml}
-            <textarea class="history-comment" data-index="${index}" placeholder="Add notes...">${item.comment || ''}</textarea>`;
+            <div class="history-comment-display" data-index="${index}">${item.comment || 'Click to add notes...'}</div>
+        `;
         elements.historyContainer.appendChild(historyItemEl);
     });
-    elements.historyContainer.querySelectorAll('.history-comment').forEach(el => 
-        el.addEventListener('change', e => saveCommentCallback(e.target.dataset.index, e.target.value))
-    );
+    
     elements.historyContainer.querySelectorAll('.delete-btn').forEach(el =>
         el.addEventListener('click', e => deleteHistoryItemCallback(e.target.dataset.index))
     );
+    
+    elements.historyContainer.querySelectorAll('.history-comment-display').forEach(el => 
+        el.addEventListener('click', e => {
+            const index = e.target.dataset.index;
+            showNotesModalCallback(index, history[index].comment || '');
+        })
+    );
+
     elements.historyContainer.querySelectorAll('.game-history-toggle').forEach(el =>
         el.addEventListener('click', (e) => {
             const list = e.target.nextElementSibling;
@@ -183,12 +224,33 @@ export function renderHistory(history, saveCommentCallback, deleteHistoryItemCal
     );
 }
 
-export function showFinishedState(pin, endDate) {
+export function showFinishedState(pin, isKeyholderMode) {
     elements.unlockButton.style.display = 'none';
     elements.resetButton.style.display = 'block';
     elements.pinDisplay.style.display = 'block';
-    elements.pinCode.textContent = pin;
-    updateTimerMessage('Congratulations. You may end your session.');
+    
+    elements.revealPinBtn.style.display = isKeyholderMode ? 'none' : 'inline-block';
+    elements.keyholderEmailBtn.style.display = isKeyholderMode ? 'inline-block' : 'none';
+
+    elements.pinCode.textContent = '************';
+
+    const revealHandler = () => {
+        sounds.playSound('flip');
+        elements.pinCode.textContent = pin;
+        elements.revealPinBtn.style.display = 'none';
+        elements.revealPinBtn.removeEventListener('click', revealHandler);
+    };
+    elements.revealPinBtn.addEventListener('click', revealHandler);
+
+    const emailHandler = () => {
+        const subject = "Chastity Session Unlock PIN";
+        const body = `The session has been completed. The unlock combination is: ${pin}`;
+        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    };
+    elements.keyholderEmailBtn.addEventListener('click', emailHandler);
+
+
+    updateTimerMessage('Congratulations. You may now end your session.');
 }
 
 export function showAchievement(achievement) {
