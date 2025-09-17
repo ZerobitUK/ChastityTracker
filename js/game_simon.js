@@ -11,8 +11,11 @@ function handleButtonClick(event) {
     if (!canClick) return;
     const clickedColor = event.target.dataset.color;
     playerSequence.push(clickedColor);
+
+    // Flash the button on click
     event.target.classList.add('active');
     setTimeout(() => event.target.classList.remove('active'), 200);
+
     const currentIndex = playerSequence.length - 1;
     if (playerSequence[currentIndex] !== sequence[currentIndex]) {
         statusEl.textContent = `Incorrect! You failed at Level ${level}.`;
@@ -34,20 +37,29 @@ function playSequence() {
     canClick = false;
     buttons.forEach(button => button.classList.add('disabled'));
     let i = 0;
+
+    // *** NEW: Dynamic speed based on level ***
+    const intervalSpeed = Math.max(300, 1000 - (level * 75)); // Time between flashes
+    const flashDuration = Math.max(150, 500 - (level * 40));  // How long flash stays lit
+
     const sequenceInterval = setInterval(() => {
-        const button = document.querySelector(`.simon-button[data-color="${sequence[i]}"]`);
-        if (button) button.classList.add('active');
-        setTimeout(() => {
-            if (button) button.classList.remove('active');
-        }, 500);
-        i++;
         if (i >= sequence.length) {
             clearInterval(sequenceInterval);
             canClick = true;
             buttons.forEach(button => button.classList.remove('disabled'));
             statusEl.textContent = 'Your turn!';
+            return;
         }
-    }, 1000);
+
+        const button = document.querySelector(`.simon-button[data-color="${sequence[i]}"]`);
+        if (button) {
+            button.classList.add('active');
+            setTimeout(() => {
+                button.classList.remove('active');
+            }, flashDuration);
+        }
+        i++;
+    }, intervalSpeed);
 }
 
 function nextSequence() {
@@ -66,10 +78,17 @@ export function initSimonSays(winCallback, loseCallback) {
     document.getElementById('game-description').textContent = `Repeat the sequence correctly for ${WIN_LEVEL} levels.`;
     gameContainer.style.display = 'grid';
     statusEl.style.display = 'block';
+    
     sequence = [];
     playerSequence = [];
     level = 0;
-    buttons.forEach(button => button.removeEventListener('click', handleButtonClick));
-    buttons.forEach(button => button.addEventListener('click', handleButtonClick));
+    
+    buttons.forEach(button => {
+        // A more robust way to handle event listeners to avoid duplicates
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        newButton.addEventListener('click', handleButtonClick);
+    });
+
     setTimeout(nextSequence, 1000);
 }
