@@ -15,6 +15,7 @@ const elements = {
     resetButton: document.getElementById('reset-button'),
     pinDisplay: document.getElementById('pin-display'),
     pinCode: document.getElementById('pin-code'),
+    photoDisplay: document.getElementById('photo-display'),
     historyContainer: document.getElementById('history-container'),
     quoteBanner: document.getElementById('quote-banner'),
     modalContainer: document.getElementById('modal-container'),
@@ -113,6 +114,7 @@ export function updateTimerDisplay(durationMs) {
 export function renderUIForActiveTimer(startTime) {
     elements.timerOptions.style.display = 'none';
     elements.practiceGamesPanel.style.display = 'none';
+    document.getElementById('camera-container').style.display = 'none';
 
     elements.startDate.textContent = new Date(startTime).toLocaleString();
     elements.startButton.style.display = 'none';
@@ -122,7 +124,7 @@ export function renderUIForActiveTimer(startTime) {
     elements.pinDisplay.style.display = 'none';
 }
 
-export function renderUIForNoTimer(pendingPin) {
+export function renderUIForNoTimer(pendingPin, pendingPhoto) {
     elements.timerOptions.style.display = 'block';
     elements.practiceGamesPanel.style.display = 'block';
 
@@ -134,7 +136,16 @@ export function renderUIForNoTimer(pendingPin) {
     elements.resetButton.style.display = 'none';
     elements.timerMessage.textContent = '';
     elements.pinDisplay.style.display = 'block';
-    elements.pinCode.textContent = pendingPin;
+
+    if (pendingPhoto) {
+        elements.photoDisplay.src = pendingPhoto;
+        elements.photoDisplay.style.display = 'block';
+        elements.pinCode.style.display = 'none';
+    } else {
+        elements.pinCode.textContent = pendingPin;
+        elements.photoDisplay.style.display = 'none';
+        elements.pinCode.style.display = 'block';
+    }
 }
 
 export function updateTimerMessage(message = '', isPenalty = false) {
@@ -173,6 +184,11 @@ export function renderHistory(history, saveCommentCallback, showNotesModalCallba
         const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
         const durationString = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        
+        const combinationDisplay = item.unlockMethod === 'photo'
+            ? `<img src="${item.unlockData}" style="max-width: 100px; border-radius: 5px; margin-top: 5px;" alt="Unlock Photo">`
+            : `<strong>Combination:</strong> ${item.unlockData}`;
+
         let gamesHtml = '';
         if (item.gameAttempts && item.gameAttempts.length > 0) {
             const gameListItems = item.gameAttempts.map(attempt => {
@@ -196,7 +212,7 @@ export function renderHistory(history, saveCommentCallback, showNotesModalCallba
             <p><strong>Lock-up:</strong> ${start}</p>
             <p><strong>Release:</strong> ${end}</p>
             <p><strong>Duration:</strong> ${durationString}</p>
-            <p><strong>Combination:</strong> ${item.pin}</p>
+            <p>${combinationDisplay}</p>
             ${gamesHtml}
             <div class="history-comment-display" data-index="${index}">${item.comment || 'Click to add notes...'}</div>
         `;
@@ -229,31 +245,40 @@ export function renderHistory(history, saveCommentCallback, showNotesModalCallba
     );
 }
 
-export function showFinishedState(pin, isKeyholderMode) {
+export function showFinishedState(unlockMethod, unlockData, isKeyholderMode) {
     elements.unlockButton.style.display = 'none';
     elements.resetButton.style.display = 'block';
     elements.pinDisplay.style.display = 'block';
+    
+    elements.photoDisplay.style.display = 'none';
+    elements.pinCode.style.display = 'none';
 
-    elements.revealPinBtn.style.display = isKeyholderMode ? 'none' : 'inline-block';
-    elements.keyholderEmailBtn.style.display = isKeyholderMode ? 'inline-block' : 'none';
-
-    elements.pinCode.textContent = '************';
-
-    const revealHandler = () => {
-        sounds.playSound('flip');
-        elements.pinCode.textContent = pin;
+    if (unlockMethod === 'photo') {
+        elements.photoDisplay.src = unlockData;
+        elements.photoDisplay.style.display = 'block';
         elements.revealPinBtn.style.display = 'none';
-        elements.revealPinBtn.removeEventListener('click', revealHandler);
-    };
-    elements.revealPinBtn.addEventListener('click', revealHandler);
+        elements.keyholderEmailBtn.style.display = 'none';
+    } else { // PIN method
+        elements.pinCode.style.display = 'block';
+        elements.revealPinBtn.style.display = isKeyholderMode ? 'none' : 'inline-block';
+        elements.keyholderEmailBtn.style.display = isKeyholderMode ? 'inline-block' : 'none';
+        elements.pinCode.textContent = '************';
 
-    const emailHandler = () => {
-        const subject = "Chastity Session Unlock PIN";
-        const body = `The session has been completed. The unlock combination is: ${pin}`;
-        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    };
-    elements.keyholderEmailBtn.addEventListener('click', emailHandler);
+        const revealHandler = () => {
+            sounds.playSound('flip');
+            elements.pinCode.textContent = unlockData;
+            elements.revealPinBtn.style.display = 'none';
+            elements.revealPinBtn.removeEventListener('click', revealHandler);
+        };
+        elements.revealPinBtn.addEventListener('click', revealHandler);
 
+        const emailHandler = () => {
+            const subject = "Chastity Session Unlock PIN";
+            const body = `The session has been completed. The unlock combination is: ${unlockData}`;
+            window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        };
+        elements.keyholderEmailBtn.addEventListener('click', emailHandler);
+    }
 
     updateTimerMessage('Congratulations. You may now end your session.');
 }
