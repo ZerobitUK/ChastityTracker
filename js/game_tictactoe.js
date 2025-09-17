@@ -2,27 +2,22 @@ let board;
 const PLAYER = 'X';
 const AI = 'O';
 let onWin, onLose;
+let isPlayerTurn = true;
 
 const gameContainer = document.getElementById('tictactoe-game-container');
 const winConditions = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
-    [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
-    [0, 4, 8], [2, 4, 6]             // diagonals
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6]
 ];
 
-function lockBoard() {
-    const cells = gameContainer.querySelectorAll('.tictactoe-cell');
-    cells.forEach(cell => {
-        const newCell = cell.cloneNode(true);
-        cell.parentNode.replaceChild(newCell, cell);
-    });
-}
-
 function handleCellClick(event) {
+    if (!isPlayerTurn) return;
+
     const index = event.target.dataset.index;
     if (board[index] !== '') return;
 
-    lockBoard(); 
+    isPlayerTurn = false;
     board[index] = PLAYER;
     renderBoard();
 
@@ -31,10 +26,10 @@ function handleCellClick(event) {
         return;
     }
     if (getEmptyCells().length === 0) {
-        setTimeout(() => onWin(), 100); // Draw is a reprieve
+        setTimeout(() => onWin(), 100);
         return;
     }
-    
+
     setTimeout(aiMove, 500);
 }
 
@@ -46,7 +41,6 @@ function getEmptyCells(currentBoard = board) {
     return currentBoard.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
 }
 
-// *** NEW: Unbeatable Minimax AI ***
 function aiMove() {
     let bestScore = -Infinity;
     let move;
@@ -55,7 +49,7 @@ function aiMove() {
     for (const cellIndex of emptyCells) {
         board[cellIndex] = AI;
         let score = minimax(board, 0, false);
-        board[cellIndex] = ''; // backtrack
+        board[cellIndex] = '';
         if (score > bestScore) {
             bestScore = score;
             move = cellIndex;
@@ -66,11 +60,11 @@ function aiMove() {
         board[move] = AI;
         renderBoard();
         if (checkWin(AI)) {
-            lockBoard();
             setTimeout(() => onLose(), 100);
         } else if (getEmptyCells().length === 0) {
-            lockBoard();
-            setTimeout(() => onWin(), 100); // Draw is a reprieve
+            setTimeout(() => onWin(), 100);
+        } else {
+            isPlayerTurn = true;
         }
     }
 }
@@ -110,7 +104,7 @@ function renderBoard() {
         cell.classList.add('tictactoe-cell');
         cell.dataset.index = index;
         cell.textContent = value;
-        if (value === '') {
+        if (value === '' && isPlayerTurn) {
             cell.addEventListener('click', handleCellClick);
         }
         gameContainer.appendChild(cell);
@@ -120,6 +114,7 @@ function renderBoard() {
 export function initTicTacToe(winCallback, loseCallback) {
     onWin = winCallback;
     onLose = loseCallback;
+    isPlayerTurn = true;
     document.getElementById('game-title').textContent = "Tic-Tac-Toe";
     document.getElementById('game-description').textContent = "Beat the Keyholder to earn your freedom. A draw is a reprieve.";
     gameContainer.style.display = 'grid';
