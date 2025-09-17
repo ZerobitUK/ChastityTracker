@@ -17,7 +17,15 @@ export async function startCamera() {
         return false;
     }
     try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        // Request a higher resolution from the camera if possible
+        const constraints = { 
+            video: { 
+                facingMode: 'environment',
+                width: { ideal: 1920 },
+                height: { ideal: 1080 } 
+            } 
+        };
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
         elements.video.srcObject = stream;
         elements.cameraContainer.style.display = 'block';
         return true;
@@ -41,16 +49,21 @@ export function stopCamera() {
 
 /**
  * Captures a photo from the video stream and returns it as a Base64 data URL.
- * The image is resized to a max width of 800px to conserve storage space.
+ * The image is resized to a max width of 1920px to conserve storage space.
  * @returns {string} The Base64 data URL of the captured image.
  */
 export function capturePhoto() {
-    const MAX_WIDTH = 1280;
+    // --- CHANGE 1: Increased Resolution ---
+    const MAX_WIDTH = 1920; // Increased from 800 for better clarity
+
     const scale = MAX_WIDTH / elements.video.videoWidth;
     elements.canvas.width = MAX_WIDTH;
     elements.canvas.height = elements.video.videoHeight * scale;
     const context = elements.canvas.getContext('2d');
     context.drawImage(elements.video, 0, 0, elements.canvas.width, elements.canvas.height);
     stopCamera();
-    return elements.canvas.toDataURL('image/jpeg', 0.95); // Use JPEG for smaller file size
+
+    // --- CHANGE 2: Increased JPEG Quality ---
+    // Increased from 0.8 to 0.95 for less compression artifacting
+    return elements.canvas.toDataURL('image/jpeg', 0.95); 
 }
