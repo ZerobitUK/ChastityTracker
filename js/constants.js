@@ -6,6 +6,7 @@ export const STORAGE_KEY = {
     CURRENT_TIMER: 'chastity_current_timer',
     HISTORY: 'chastity_history',
     PENDING_PIN: 'chastity_pending_pin',
+    PENDING_PHOTO: 'chastity_pending_photo',
     PENALTY_END: 'chastity_penalty_end',
     TOTAL_PENALTY: 'chastity_total_penalty_time',
     GAME_STATE: 'chastity_game_state'
