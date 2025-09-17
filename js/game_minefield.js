@@ -1,9 +1,7 @@
 const gridEl = document.getElementById('minefield-grid');
-const backButton = document.getElementById('minefield-back-btn');
-
 const TILE_COUNT = 12;
 const MINE_COUNT = 3;
-let onResult;
+let onWin, onLose;
 
 function handleTileClick(event) {
     const tile = event.currentTarget;
@@ -16,25 +14,34 @@ function handleTileClick(event) {
     });
 
     tile.classList.add('is-flipped');
+    tile.innerHTML = isMine ? '💣' : '✔️';
     
     setTimeout(() => {
         allTiles.forEach(t => {
             if (t !== tile) {
                 t.classList.add('is-flipped');
+                t.innerHTML = t.dataset.mine === 'true' ? '💣' : '✔️';
             }
         });
     }, 1000);
 
     setTimeout(() => {
-        backButton.style.display = 'block';
-        onResult(isMine);
+        if (isMine) {
+            onLose();
+        } else {
+            onWin();
+        }
     }, 2500);
 }
 
-export function initMinefield(resultCallback) {
-    onResult = resultCallback;
+export function initMinefield(winCallback, loseCallback) {
+    onWin = winCallback;
+    onLose = loseCallback;
+    
+    document.getElementById('game-title').textContent = "Minefield";
+    document.getElementById('game-description').textContent = "Click a tile. Avoid the mines to win your freedom.";
+    gridEl.style.display = 'grid';
     gridEl.innerHTML = '';
-    backButton.style.display = 'none';
 
     let mines = new Set();
     while(mines.size < MINE_COUNT) {
