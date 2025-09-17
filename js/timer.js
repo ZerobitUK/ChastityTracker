@@ -2,6 +2,9 @@ import { showFinishedState, updateTimerDisplay, updateTimerMessage, toggleUnlock
 import { STORAGE_KEY } from './constants.js';
 
 let timerInterval = null;
+let lastTimeCheck = 0;
+let timeCheckInterval = 60000; // Check every 60 seconds
+let isTimeDesynced = false;
 
 function getLocalStorage(key) {
     try {
@@ -13,6 +16,31 @@ function getLocalStorage(key) {
     }
 }
 
+/**
+ * Fetches the current world time to compare against the local system clock.
+ */
+async function verifyTime() {
+    try {
+        const response = await fetch('https://worldtimeapi.org/api/ip');
+        if (!response.ok) throw new Error('Network response was not ok.');
+        const data = await response.json();
+        const serverTime = new Date(data.utc_datetime).getTime();
+        const localTime = Date.now();
+        
+        // If the local time is more than 60 seconds ahead of server time, flag it.
+        if (localTime > serverTime + 60000) {
+            isTimeDesynced = true;
+        } else {
+            isTimeDesynced = false;
+        }
+    } catch (error) {
+        console.warn("Could not verify world time. The user might be offline.", error);
+        // If we can't check, assume it's fine.
+        isTimeDesynced = false;
+    }
+}
+
+
 export function startUpdateInterval() {
     const update = () => {
         const currentTimer = getLocalStorage(STORAGE_KEY.CURRENT_TIMER);
@@ -22,16 +50,26 @@ export function startUpdateInterval() {
         }
 
         const now = Date.now();
+
+        // Periodically check the real time
+        if (now > lastTimeCheck + timeCheckInterval) {
+            verifyTime();
+            lastTimeCheck = now;
+        }
+
+        // If time is out of sync, pause everything and show a message
+        if (isTimeDesynced) {
+            updateTimerDisplay(now - currentTimer.startTime);
+            updateTimerMessage('System clock is incorrect. Timer paused.');
+            toggleUnlockButton(false);
+            return;
+        }
         
-        // *** NEW: Check for max duration override FIRST ***
+        // Check for max duration override FIRST
         if (currentTimer.maxEndTime && now >= currentTimer.maxEndTime) {
-            // Use the UI function to show the end state, which reveals the 'End Session' button.
-            showFinishedState(currentTimer.pin); 
-            // Ensure the timer display doesn't exceed the max time.
+            showFinishedState(currentTimer.pin, currentTimer.isKeyholderMode); 
             updateTimerDisplay(currentTimer.maxEndTime - currentTimer.startTime); 
-            // Override any other message to show the max time was reached.
             updateTimerMessage('Maximum session time reached.'); 
-            // Stop further processing to bypass all penalties and lockdowns.
             return; 
         }
 
@@ -93,6 +131,7 @@ export function startUpdateInterval() {
     };
 
     clearInterval(timerInterval);
+    verifyTime(); // Initial check
     update();
     timerInterval = setInterval(update, 1000);
 }
