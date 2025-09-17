@@ -53,29 +53,6 @@
                     <label for="maxDurationInput">Maximum Session Duration (in hours):</label>
                     <input type="number" id="maxDurationInput" placeholder="Optional safeguard" min="1" style="width: 150px; padding: 5px;">
                 </div>
-
-                <div id="game-config-options" style="margin-top: 1rem; border-top: 1px solid #444; padding-top: 1rem; text-align: left;">
-                    <p style="text-align: center;">Enabled Games for Unlock:</p>
-                    <div style="display: inline-block; text-align: left;">
-                        <div>
-                            <input type="checkbox" id="gameEnableMemory" data-game="memory" checked>
-                            <label for="gameEnableMemory">The Keyholder's Memory</label>
-                        </div>
-                        <div>
-                            <input type="checkbox" id="gameEnableTictactoe" data-game="tictactoe" checked>
-                            <label for="gameEnableTictactoe">Tic-Tac-Toe</label>
-                        </div>
-                        <div>
-                            <input type="checkbox" id="gameEnableGuess" data-game="guessthenumber" checked>
-                            <label for="gameEnableGuess">Guess the Number</label>
-                        </div>
-                        <div>
-                            <input type="checkbox" id="gameEnableSimon" data-game="simonsays" checked>
-                            <label for="gameEnableSimon">Simon Says</label>
-                        </div>
-                    </div>
-                </div>
-
             </div>
 
             <div class="actions">
@@ -88,6 +65,17 @@
             <div class="pin-display-area" id="pin-display">
                 <h2>Your Unlock Combination</h2>
                 <div class="pin-code" id="pin-code"></div>
+            </div>
+
+            <div id="practice-games-panel" style="margin-top: 2rem; border-top: 1px solid #444; padding-top: 1rem;">
+                <h2>Practice Games</h2>
+                <p>Play a game without any stakes. This will not affect your lock-up session.</p>
+                <div class="actions" id="practice-game-buttons">
+                    <button data-game="memory" style="background-color: #555; color: #fff;">The Keyholder's Memory</button>
+                    <button data-game="tictactoe" style="background-color: #555; color: #fff;">Tic-Tac-Toe</button>
+                    <button data-game="guessthenumber" style="background-color: #555; color: #fff;">Guess the Number</button>
+                    <button data-game="simonsays" style="background-color: #555; color: #fff;">Simon Says</button>
+                </div>
             </div>
 
             <div class="history-list">
@@ -135,7 +123,7 @@
             </div>
             <p id="simon-status" style="display:none;"></p>
             
-            <button id="back-to-selection-btn" style="margin-top: 1.5rem; background-color: #555; color: #e0e0e0;">Back to Selection</button>
+            <button id="back-to-selection-btn" style="margin-top: 1.5rem; background-color: #555; color: #e0e0e0;">Back to Main Screen</button>
         </div>
     </div>
 
