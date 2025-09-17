@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chastity Timer</title>
+    <title>Chastity Tracker</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="wheel.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
 </head>
 <body>
     <div id="modal-container" class="modal-container">
@@ -29,7 +30,7 @@
 
     <div class="container" id="main-content">
         <div id="timer-screen" class="screen active">
-            <h1>Time Locked</h1>
+            <h1>Session Duration</h1>
             <div id="timer">00d : 00h : 00m : 00s</div>
             <div id="timer-message"></div>
             <div id="lockdown-timer" class="lockdown-timer"></div>
@@ -51,9 +52,9 @@
             </div>
 
             <div class="actions">
-                <button class="start" id="start-button">Begin Lock-up</button>
+                <button class="start" id="start-button">Initiate Session</button>
                 <button class="start-locktober" id="start-locktober-button">Start Locktober</button>
-                <button class="request-unlock" id="unlock-button" style="display:none;">Attempt Unlock</button>
+                <button class="request-unlock" id="unlock-button" style="display:none;">Request Release</button>
                 <button class="reset" id="reset-button" style="display:none;">End Session</button>
             </div>
             
