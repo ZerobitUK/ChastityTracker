@@ -43,6 +43,7 @@
         <button id="sound-toggle-btn" class="sound-toggle">🔊</button>
         
         <div id="timer-screen" class="screen active">
+            <div class="edge-points-display" id="edge-points-display">Edge: 0 EP</div>
             <h1>Session Duration</h1>
             <div id="timer">00d : 00h : 00m : 00s</div>
             <div id="timer-message"></div>
@@ -134,7 +135,12 @@
                 <div class="wheel-pointer"></div>
                 <div id="wheel" class="wheel"></div>
             </div>
-            <button id="spin-button">Spin the Wheel</button>
+            <div id="edge-options-container" class="edge-options" style="margin-top: 1.5rem;">
+                <p>Use your Edge to influence the outcome:</p>
+                <button id="edge-option-nudge" data-cost="20">Nudge the Wheel (20 EP)</button>
+                <button id="edge-option-calibrate" data-cost="50">Calibrate Odds (50 EP)</button>
+            </div>
+            <button id="spin-button" style="margin-top: 1rem;">Spin the Wheel</button>
             <button id="wheel-back-btn" style="margin-top: 1rem; background-color: #555; color: #e0e0e0; display: none;">Continue</button>
         </div>
 
