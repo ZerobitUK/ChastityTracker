@@ -2,6 +2,7 @@ import { MOTIVATIONAL_QUOTES, QUOTE_FLIP_INTERVAL_MS, STORAGE_KEY, PENALTY_DURAT
 import * as ui from './ui.js';
 import * as timer from './timer.js';
 import * as sounds from './sounds.js';
+import * as camera from './camera.js';
 import { initWheel } from './game_wheel.js';
 import { initMemoryGame } from './game_memory.js';
 import { initTicTacToe } from './game_tictactoe.js';
@@ -16,6 +17,7 @@ let state = {
     currentTimer: null,
     history: [],
     pendingPin: null,
+    pendingPhoto: null,
     gameAttempts: [],
     achievements: {},
     currentGame: null,
@@ -58,7 +60,11 @@ function setLocalStorage(key, value) {
         localStorage.setItem(key, JSON.stringify(value));
     } catch (e) {
         console.error("Error writing to local storage:", e);
-        ui.showModal("Storage Error", "Could not save data. Your browser's local storage might be disabled or full.");
+        if (e.name === 'QuotaExceededError') {
+             ui.showModal("Storage Error", "Could not save data. The browser storage is full. This can happen if the captured photo is too large.");
+        } else {
+            ui.showModal("Storage Error", "Could not save data. Your browser's local storage might be disabled or full.");
+        }
     }
 }
 
@@ -68,6 +74,7 @@ function loadState() {
     state.currentTimer = getLocalStorage(STORAGE_KEY.CURRENT_TIMER);
     state.history = getLocalStorage(STORAGE_KEY.HISTORY) || [];
     state.pendingPin = getLocalStorage(STORAGE_KEY.PENDING_PIN);
+    state.pendingPhoto = getLocalStorage(STORAGE_KEY.PENDING_PHOTO);
     state.achievements = getLocalStorage('chastity_achievements') || {};
     
     // Verify checksum if a timer is active
@@ -82,7 +89,7 @@ function loadState() {
     }
 
 
-    if (!state.currentTimer && !state.pendingPin) {
+    if (!state.currentTimer && !state.pendingPin && !state.pendingPhoto) {
         state.pendingPin = generatePin();
         setLocalStorage(STORAGE_KEY.PENDING_PIN, state.pendingPin);
     }
@@ -112,6 +119,7 @@ function grantAchievement(id) {
 
 function startNewTimer() {
     const timerType = document.querySelector('input[name="timerType"]:checked').value;
+    const unlockMethod = document.querySelector('input[name="unlockMethod"]:checked').value;
     const now = Date.now();
     
     const maxDurationInput = document.getElementById('maxDurationInput');
@@ -125,7 +133,8 @@ function startNewTimer() {
 
     state.currentTimer = {
         startTime: now,
-        pin: state.pendingPin,
+        unlockMethod: unlockMethod,
+        unlockData: unlockMethod === 'pin' ? state.pendingPin : state.pendingPhoto,
         isMinimum: timerType === 'random',
         minEndTime: null,
         maxEndTime: maxEndTime,
@@ -144,7 +153,9 @@ function startNewTimer() {
 
     setLocalStorage(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
     localStorage.removeItem(STORAGE_KEY.PENDING_PIN);
+    localStorage.removeItem(STORAGE_KEY.PENDING_PHOTO);
     state.pendingPin = null;
+    state.pendingPhoto = null;
     ui.renderUIForActiveTimer(now);
     timer.startUpdateInterval();
 }
@@ -161,7 +172,8 @@ function startLocktoberTimer() {
 
             state.currentTimer = {
                 startTime: now,
-                pin: state.pendingPin,
+                unlockMethod: 'pin', // Locktober defaults to PIN
+                unlockData: state.pendingPin,
                 isMinimum: true,
                 minEndTime: now + thirtyOneDaysInMs,
                 maxEndTime: null,
@@ -172,7 +184,9 @@ function startLocktoberTimer() {
 
             setLocalStorage(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
             localStorage.removeItem(STORAGE_KEY.PENDING_PIN);
+            localStorage.removeItem(STORAGE_KEY.PENDING_PHOTO);
             state.pendingPin = null;
+            state.pendingPhoto = null;
             ui.renderUIForActiveTimer(now);
             timer.startUpdateInterval();
         }
@@ -286,7 +300,7 @@ function winGame() {
         timer.stopUpdateInterval();
         const endTime = Date.now();
         ui.updateTimerDisplay(endTime - state.currentTimer.startTime);
-        ui.showFinishedState(state.currentTimer.pin, state.currentTimer.isKeyholderMode);
+        ui.showFinishedState(state.currentTimer.unlockMethod, state.currentTimer.unlockData, state.currentTimer.isKeyholderMode);
         ui.showModal("Success!", "You have earned your release.", false, () => {
             ui.switchScreen('timer-screen');
         });
@@ -367,7 +381,8 @@ function endSession(force = false) {
         const historyItem = {
             startTime: state.currentTimer.startTime,
             endTime: endTime,
-            pin: state.currentTimer.pin,
+            unlockMethod: state.currentTimer.unlockMethod,
+            unlockData: state.currentTimer.unlockData,
             comment: '',
             penaltyTime: totalPenalty,
             gameAttempts: state.gameAttempts,
@@ -387,7 +402,7 @@ function endSession(force = false) {
     localStorage.removeItem('chastity_is_double_or_nothing');
     state.pendingPin = generatePin();
     setLocalStorage(STORAGE_KEY.PENDING_PIN, state.pendingPin);
-    ui.renderUIForNoTimer(state.pendingPin);
+    ui.renderUIForNoTimer(state.pendingPin, state.pendingPhoto);
     ui.renderHistory(state.history, saveComment, ui.showNotesModal);
     ui.switchScreen('timer-screen');
 }
@@ -433,7 +448,15 @@ function startQuoteFlipper() {
 }
 
 function setupEventListeners() {
-    document.getElementById('start-button').addEventListener('click', startNewTimer);
+    document.getElementById('start-button').addEventListener('click', () => {
+        const unlockMethod = document.querySelector('input[name="unlockMethod"]:checked').value;
+        if (unlockMethod === 'photo' && !state.pendingPhoto) {
+            ui.showModal("Photo Required", "Please capture a photo of the lock before starting the session.");
+            return;
+        }
+        startNewTimer();
+    });
+    
     document.getElementById('start-locktober-button').addEventListener('click', startLocktoberTimer);
     document.getElementById('unlock-button').addEventListener('click', attemptUnlock);
     document.getElementById('reset-button').addEventListener('click', () => endSession(false));
@@ -457,6 +480,30 @@ function setupEventListeners() {
             startGame(gameType, practiceWin, practiceLose);
         }
     });
+
+    document.querySelector('input[name="unlockMethod"][value="photo"]').addEventListener('change', async (e) => {
+        if (e.target.checked) {
+            const cameraStarted = await camera.startCamera();
+            if (!cameraStarted) {
+                // If camera fails, revert to PIN mode
+                document.querySelector('input[name="unlockMethod"][value="pin"]').checked = true;
+            }
+        }
+    });
+
+    document.querySelector('input[name="unlockMethod"][value="pin"]').addEventListener('change', (e) => {
+        if (e.target.checked) {
+            camera.stopCamera();
+        }
+    });
+    
+    document.getElementById('capture-photo-btn').addEventListener('click', () => {
+        const photoData = camera.capturePhoto();
+        state.pendingPhoto = photoData;
+        setLocalStorage(STORAGE_KEY.PENDING_PHOTO, photoData);
+        ui.showModal("Photo Captured", "The photo has been saved. You may now start your session.");
+        ui.renderUIForNoTimer(state.pendingPin, state.pendingPhoto);
+    });
     
     ui.setupNotesModal(saveComment);
 }
@@ -476,7 +523,7 @@ function initializeApp() {
         ui.renderUIForActiveTimer(state.currentTimer.startTime);
         timer.startUpdateInterval();
     } else {
-        ui.renderUIForNoTimer(state.pendingPin);
+        ui.renderUIForNoTimer(state.pendingPin, state.pendingPhoto);
     }
     
     ui.renderHistory(state.history, saveComment, ui.showNotesModal);
