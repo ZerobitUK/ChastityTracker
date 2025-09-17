@@ -1,7 +1,7 @@
 import { STORAGE_KEY } from './constants.js';
 
-const CARDS = ['🔑', '🔒', '❤️', '🔥', '💦', '⌛', '🍆', '⛓️'];
-const MAX_TURNS = 12;
+const CARDS = ['🔑', '🔒', '❤️', '🔥', '💦', '⌛', '🍆', '⛓️', '😈', '🤞'];
+const MAX_TURNS = 14; // Adjusted for the increased number of cards
 
 let firstCard, secondCard;
 let lockBoard = false;
