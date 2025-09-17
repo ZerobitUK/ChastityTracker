@@ -21,17 +21,17 @@ const elements = {
     modalMessage: document.getElementById('modal-message'),
     modalConfirmBtn: document.getElementById('modal-confirm-btn'),
     modalCloseBtn: document.getElementById('modal-close-btn'),
+    // *** NEW: Reference to the game config panel ***
+    gameConfigOptions: document.getElementById('game-config-options'),
 };
 
 let confirmCallback = null;
 let cancelCallback = null;
 
 elements.modalCloseBtn.addEventListener('click', () => {
-    // If a specific cancel action exists, run it.
     if (typeof cancelCallback === 'function') {
         cancelCallback();
     } 
-    // Otherwise, if there's no confirm button, the "Close" button should run the primary action.
     else if (elements.modalConfirmBtn.style.display === 'none' && typeof confirmCallback === 'function') {
         confirmCallback();
     }
@@ -76,7 +76,10 @@ export function updateTimerDisplay(durationMs) {
 }
 
 export function renderUIForActiveTimer(startTime) {
+    // *** HIDE timer and game options when timer starts ***
     elements.timerOptions.style.display = 'none';
+    elements.gameConfigOptions.style.display = 'none';
+
     elements.startDate.textContent = new Date(startTime).toLocaleString();
     elements.startButton.style.display = 'none';
     elements.startLocktoberButton.style.display = 'none';
@@ -86,7 +89,10 @@ export function renderUIForActiveTimer(startTime) {
 }
 
 export function renderUIForNoTimer(pendingPin) {
+    // *** SHOW timer and game options when there is no timer ***
     elements.timerOptions.style.display = 'block';
+    elements.gameConfigOptions.style.display = 'block';
+    
     elements.timer.textContent = '00d : 00h : 00m : 00s';
     elements.startDate.textContent = 'N/A';
     elements.startButton.style.display = 'block';
