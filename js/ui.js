@@ -120,7 +120,7 @@ export function renderUIForActiveTimer(startTime) {
     elements.startButton.style.display = 'none';
     elements.startLocktoberButton.style.display = 'none';
     elements.unlockButton.style.display = 'block';
-    elements.resetButton.style.display = 'none';
+    elements.resetButton.style.display = 'block';
     elements.pinDisplay.style.display = 'none';
 }
 
