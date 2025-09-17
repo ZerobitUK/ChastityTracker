@@ -1,4 +1,4 @@
-import { KINKY_QUOTES, QUOTE_FLIP_INTERVAL_MS, STORAGE_KEY, PENALTY_DURATION_MS, ACHIEVEMENTS, RANDOM_EVENTS } from './constants.js';
+import { MOTIVATIONAL_QUOTES, QUOTE_FLIP_INTERVAL_MS, STORAGE_KEY, PENALTY_DURATION_MS, ACHIEVEMENTS, RANDOM_EVENTS } from './constants.js';
 import * as ui from './ui.js';
 import * as timer from './timer.js';
 import { initWheel } from './game_wheel.js';
@@ -16,11 +16,14 @@ let state = {
     currentGame: null,
 };
 
+// --- Local Storage Management ---
+
 function getLocalStorage(key) {
     try {
         const item = localStorage.getItem(key);
         return item ? JSON.parse(item) : null;
     } catch (e) {
+        console.error("Error reading from local storage:", e);
         ui.showModal("Storage Error", "Could not read data. Your browser's local storage might be disabled or full.");
         return null;
     }
@@ -30,9 +33,12 @@ function setLocalStorage(key, value) {
     try {
         localStorage.setItem(key, JSON.stringify(value));
     } catch (e) {
+        console.error("Error writing to local storage:", e);
         ui.showModal("Storage Error", "Could not save data. Your browser's local storage might be disabled or full.");
     }
 }
+
+// --- State Management ---
 
 function loadState() {
     state.currentTimer = getLocalStorage(STORAGE_KEY.CURRENT_TIMER);
@@ -50,6 +56,8 @@ function saveHistory() {
     setLocalStorage(STORAGE_KEY.HISTORY, state.history);
 }
 
+// --- Core Logic ---
+
 function generatePin() {
     let pin = '';
     for (let i = 0; i < 12; i++) {
@@ -66,6 +74,10 @@ function grantAchievement(id) {
     }
 }
 
+/**
+ * Starts a new timer session, either a normal counter or a random minimum duration.
+ * Saves the new timer to local storage and updates the UI.
+ */
 function startNewTimer() {
     const timerType = document.querySelector('input[name="timerType"]:checked').value;
     const now = Date.now();
@@ -88,6 +100,9 @@ function startNewTimer() {
     timer.startUpdateInterval();
 }
 
+/**
+ * Starts a special 31-day "Locktober" session.
+ */
 function startLocktoberTimer() {
     ui.showModal(
         "Confirm Locktober",
@@ -113,6 +128,10 @@ function startLocktoberTimer() {
     );
 }
 
+/**
+ * Initiates the unlock process, checking for any active penalties or lockdowns.
+ * If clear, it proceeds to the Wheel of Fortune.
+ */
 function attemptUnlock() {
     const activeLockdown = getLocalStorage('chastity_active_lockdown');
     if (activeLockdown && Date.now() < activeLockdown.expiry) {
@@ -183,6 +202,11 @@ function startGame(gameType, isSuddenDeath = false) {
     }
 }
 
+/**
+ * Handles the logic for winning a game.
+ * If it's a normal win, the user can end the session.
+ * If it's a "Double or Nothing" win, the timer continues.
+ */
 function winGame() {
     const isDoubleOrNothing = getLocalStorage('chastity_is_double_or_nothing');
 
@@ -210,6 +234,10 @@ function winGame() {
     }
 }
 
+/**
+ * Handles the logic for losing a game.
+ * Applies a penalty, which is doubled if it's a "Double or Nothing" game.
+ */
 function loseGame() {
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
     localStorage.removeItem('chastity_selected_game');
@@ -254,6 +282,10 @@ function loseGame() {
     });
 }
 
+/**
+ * Ends the current session, saves it to history, and resets the application state
+ * for a new session.
+ */
 function endSession() {
     if (!state.currentTimer) return;
     const endTime = Date.now();
@@ -296,6 +328,8 @@ function resetApp() {
     });
 }
 
+// --- History Management ---
+
 function saveComment(index, text) {
     if (state.history[index]) {
         state.history[index].comment = text;
@@ -311,16 +345,18 @@ function deleteHistoryItem(index) {
     });
 }
 
+// --- UI Initialization ---
+
 function startQuoteFlipper() {
     const quoteBanner = document.getElementById('quote-banner');
     if (!quoteBanner) return;
-    const initialIndex = Math.floor(Math.random() * KINKY_QUOTES.length);
-    quoteBanner.textContent = KINKY_QUOTES[initialIndex];
+    const initialIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+    quoteBanner.textContent = MOTIVATIONAL_QUOTES[initialIndex];
     setInterval(() => {
         quoteBanner.style.opacity = '0';
         setTimeout(() => {
-            const randomIndex = Math.floor(Math.random() * KINKY_QUOTES.length);
-            quoteBanner.textContent = KINKY_QUOTES[randomIndex];
+            const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+            quoteBanner.textContent = MOTIVATIONAL_QUOTES[randomIndex];
             quoteBanner.style.opacity = '1';
         }, 1000);
     }, QUOTE_FLIP_INTERVAL_MS);
