@@ -23,11 +23,11 @@ function setupWheel() {
         const text = document.createElement('div');
         text.classList.add('wheel-spoke-text');
         text.textContent = outcome.text;
-        
+
         if (outcome.type === 'double') {
             text.classList.add('double-or-nothing');
         }
-        
+
         text.style.transform = `translateX(-50%) rotate(${-rotation}deg)`;
 
         container.appendChild(line);
@@ -40,7 +40,7 @@ function spin() {
     spinButton.disabled = true;
     backButton.style.display = 'none';
     const winningSegmentIndex = Math.floor(Math.random() * segmentCount);
-    
+
     const targetRotation = -(winningSegmentIndex * segmentAngle);
     const fullSpins = 5 + Math.floor(Math.random() * 3);
     const finalAngle = targetRotation + (360 * fullSpins);
@@ -59,23 +59,13 @@ export function initWheel(spinCallback) {
     setupWheel();
     spinButton.disabled = false;
     backButton.style.display = 'none';
-    
+
     wheelEl.style.transition = 'none';
     wheelEl.style.transform = 'rotate(0deg)';
-    
+
     setTimeout(() => {
         wheelEl.style.transition = 'transform 5s cubic-bezier(0.25, 1, 0.5, 1)';
     }, 50);
 
-    const spinHandler = () => {
-        spin();
-        const newSpinButton = spinButton.cloneNode(true);
-        spinButton.parentNode.replaceChild(newSpinButton, spinButton);
-        window.spinButton = newSpinButton;
-    };
-    
-    const newSpinButton = spinButton.cloneNode(true);
-    spinButton.parentNode.replaceChild(newSpinButton, spinButton);
-    newSpinButton.addEventListener('click', spinHandler);
-    window.spinButton = newSpinButton;
+    spinButton.addEventListener('click', spin, { once: true });
 }
