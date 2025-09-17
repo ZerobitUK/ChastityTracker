@@ -1,3 +1,5 @@
+import { STORAGE_KEY } from './constants.js';
+
 let secretNumber, attempts;
 const MAX_ATTEMPTS = 5;
 let onWin, onLose;
@@ -25,6 +27,8 @@ function checkGuess() {
     }
 
     attempts++;
+    setGameState({ secretNumber, attempts }); // Save state after every attempt
+
     const attemptsLeft = MAX_ATTEMPTS - attempts;
     guessPromptEl.textContent = `Attempts left: ${attemptsLeft}`;
     guessInput.value = '';
@@ -52,22 +56,28 @@ function checkGuess() {
     }
 }
 
-export function initGuessTheNumber(winCallback, loseCallback, isSuddenDeath = false) {
+export function initGuessTheNumber(winCallback, loseCallback, savedState, isSuddenDeath = false) {
     onWin = winCallback;
     onLose = loseCallback;
 
     gameContainer.style.display = 'block';
 
-    secretNumber = Math.floor(Math.random() * 100) + 1;
-    attempts = 0;
+    if (savedState && savedState.secretNumber) {
+        secretNumber = savedState.secretNumber;
+        attempts = savedState.attempts;
+    } else {
+        secretNumber = Math.floor(Math.random() * 100) + 1;
+        attempts = 0;
+        setGameState({ secretNumber, attempts });
+    }
 
-    guessPromptEl.textContent = `Attempts left: ${MAX_ATTEMPTS}`;
+    guessPromptEl.textContent = `Attempts left: ${MAX_ATTEMPTS - attempts}`;
     guessMessageEl.textContent = '';
     guessInput.value = '';
     guessSubmitBtn.disabled = false;
     guessInput.focus();
 
-    stopGameTimer(); // Clear any existing timer
+    stopGameTimer();
 
     if (isSuddenDeath) {
         document.getElementById('game-title').textContent = "Sudden Death: Guess the Number";
@@ -102,4 +112,8 @@ function handleEnterKey(event) {
     if (event.key === "Enter") {
         checkGuess();
     }
+}
+
+function setGameState(newState) {
+    localStorage.setItem(STORAGE_KEY.GAME_STATE, JSON.stringify(newState));
 }
