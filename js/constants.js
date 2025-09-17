@@ -11,9 +11,18 @@ export const STORAGE_KEY = {
     GAME_STATE: 'chastity_game_state'
 };
 
-// Kinky Quotes Array
-export const KINKY_QUOTES = [
-    "Every moment locked is a testament to your submission.", "You are exactly where you belong. Enjoy your time.", "My desires are your command. Remain locked.", "The longer the wait, the sweeter the reward... perhaps.", "Your restraint pleases me. Keep counting those moments.", "Freedom is a state of mind, not a state of unlocking.", "I hold the key, and your patience is truly tested.", "Good boys know how to endure. This time is yours to earn.", "Feel the delightful ache of denial. It suits you.", "Your devotion grows with every passing second in my control."
+// Motivational Quotes Array
+export const MOTIVATIONAL_QUOTES = [
+    "The only way to do great work is to love what you do.",
+    "Believe you can and you're halfway there.",
+    "The future belongs to those who believe in the beauty of their dreams.",
+    "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+    "It does not matter how slowly you go as long as you do not stop.",
+    "Perseverance is not a long race; it is many short races one after the other.",
+    "The key to success is to focus on goals, not obstacles.",
+    "The harder the conflict, the more glorious the triumph.",
+    "What you get by achieving your goals is not as important as what you become by achieving your goals.",
+    "Discipline is the bridge between goals and accomplishment."
 ];
 
 // Achievements
