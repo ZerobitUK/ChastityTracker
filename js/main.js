@@ -246,54 +246,63 @@ function winGame() {
     }
 }
 
+// Located inside js/main.js
+
+function loseGame() {
+    localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+    localStorage.removeItem('chastity_selected_game');
+    let penalty;
+    let penaltyMessage;
+
+    const isDoubleOrNothing = getLocalStorage('chastity_is_double_or_nothing');
+    localStorage.removeItem('chastity_is_double_or_nothing'); // Moved this up to clean up immediately
+
+    if (isDoubleOrNothing) {
+        const elapsedTime = Date.now() - state.currentTimer.startTime;
+        penalty = elapsedTime * 2;
+        
+        const days = Math.floor(penalty / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((penalty % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((penalty % (1000 * 60 * 60)) / (1000 * 60));
+        penaltyMessage = `You failed Sudden Death! A massive penalty of ${days}d ${hours}h ${minutes}m has been applied.`;
+
+        // ***FIX APPLIED HERE***
+        // Use the correct local storage key for the doubled penalty
+        const penaltyExpiry = Date.now() + penalty;
+        setLocalStorage('chastity_doubled_penalty', { expiry: penaltyExpiry });
+
+    } else {
+        penalty = PENALTY_DURATION_MS;
+        const activeEvent = getLocalStorage('chastity_active_event');
+        if (activeEvent?.effect === 'halfPenalty' && Date.now() < activeEvent.expiry) {
+            penalty /= 2;
+        }
+        penaltyMessage = `A penalty of ${penalty / 60000} minutes has been applied.`;
+        
+        // For a normal loss, set the standard penalty key
+        const penaltyEndTime = Date.now() + penalty;
+        setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
+    }
+
+    state.gameAttempts.push({ name: state.currentGame, result: 'Loss', penalty });
+    if (state.gameAttempts.filter(a => a.result === 'Loss').length >= 3) {
+        grantAchievement('lose3');
+    }
+
+    // This part is no longer needed for the doubled penalty case
+    // let totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0;
+    // totalPenalty += penalty;
+    // setLocalStorage(STORAGE_KEY.TOTAL_PENALTY, totalPenalty);
+
+    ui.showModal("Failure", penaltyMessage, false, () => {
+        ui.switchScreen('timer-screen');
+        timer.startUpdateInterval(); 
+    });
+}
 /**
  * Handles the logic for losing a game.
  * Applies a penalty, which is doubled if it's a "Double or Nothing" game.
  */
-function loseGame() {
-    localStorage.removeItem(STORAGE_KEY.GAME_STATE); //
-    localStorage.removeItem('chastity_selected_game'); //
-    let penalty; //
-    let penaltyMessage; //
-
-    const isDoubleOrNothing = getLocalStorage('chastity_is_double_or_nothing'); //
-
-    if (isDoubleOrNothing) { //
-        const elapsedTime = Date.now() - state.currentTimer.startTime; //
-        penalty = elapsedTime * 2; //
-        
-        const days = Math.floor(penalty / (1000 * 60 * 60 * 24)); //
-        const hours = Math.floor((penalty % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)); //
-        const minutes = Math.floor((penalty % (1000 * 60 * 60)) / (1000 * 60)); //
-        penaltyMessage = `You failed Sudden Death! A massive penalty of ${days}d ${hours}h ${minutes}m has been applied.`; //
-
-        localStorage.removeItem('chastity_is_double_or_nothing'); //
-    } else {
-        penalty = PENALTY_DURATION_MS; //
-        const activeEvent = getLocalStorage('chastity_active_event'); //
-        // This check for "Moment of Mercy" now works correctly.
-        if (activeEvent?.effect === 'halfPenalty' && Date.now() < activeEvent.expiry) { //
-            penalty /= 2; //
-        }
-        penaltyMessage = `A penalty of ${penalty / 60000} minutes has been applied.`; //
-    }
-
-    state.gameAttempts.push({ name: state.currentGame, result: 'Loss', penalty }); //
-    if (state.gameAttempts.filter(a => a.result === 'Loss').length >= 3) { //
-        grantAchievement('lose3'); //
-    }
-
-    const penaltyEndTime = Date.now() + penalty; //
-    setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime); //
-    let totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0; //
-    totalPenalty += penalty; //
-    setLocalStorage(STORAGE_KEY.TOTAL_PENALTY, totalPenalty); //
-
-    ui.showModal("Failure", penaltyMessage, false, () => { //
-        ui.switchScreen('timer-screen'); //
-        timer.startUpdateInterval();  //
-    });
-}
 
 /**
  * Ends the current session, saves it to history, and resets the application state
