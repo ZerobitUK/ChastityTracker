@@ -28,7 +28,7 @@ body {
     width: 90%;
     max-width: 600px;
     text-align: center;
-    padding: 3rem; /* Increased padding */
+    padding: 3rem;
     background-color: var(--secondary-color);
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
@@ -36,6 +36,17 @@ body {
     position: relative;
     overflow: hidden;
     min-height: 500px;
+}
+
+/* NEW: Sound toggle button style */
+.sound-toggle {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
 }
 
 .screen {
@@ -79,7 +90,7 @@ body {
 
 h1, h2 { 
     color: var(--primary-color); 
-    margin-bottom: 1.5rem; /* Increased margin */
+    margin-bottom: 1.5rem;
 }
 
 /* Timer and Messages */
@@ -87,17 +98,17 @@ h1, h2 {
     font-size: 2.5rem; 
     font-weight: bold; 
     color: var(--primary-color); 
-    margin-bottom: 2rem; /* Increased margin */
+    margin-bottom: 2rem;
 }
 
 .date-info { 
     font-size: 1rem; 
     color: var(--text-color); 
-    margin-bottom: 2.5rem; /* Increased margin */
+    margin-bottom: 2.5rem;
 }
 
 #timer-message { 
-    margin-bottom: 1.5rem; /* Increased margin */
+    margin-bottom: 1.5rem;
     font-size: 1.2rem; 
     color: var(--button-start); 
     font-weight: bold; 
@@ -159,6 +170,20 @@ button.danger {
     width: 90%; max-width: 400px; text-align: center;
 }
 
+/* NEW: Notes Modal textarea style */
+#notes-modal-textarea {
+    width: 95%;
+    height: 150px;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 5px;
+    border: 1px solid #444;
+    background-color: #222;
+    color: var(--text-color);
+    font-family: inherit;
+}
+
+
 #modal-actions { margin-top: 1.5rem; display: flex; justify-content: center; gap: 1rem; }
 #modal-confirm-btn { background-color: var(--button-start); }
 #modal-close-btn { background-color: var(--button-reset); }
@@ -167,14 +192,32 @@ button.danger {
 .history-list { margin-top: 2rem; text-align: left; border-top: 1px solid #444; padding-top: 1rem; }
 .history-item { background-color: #222; padding: 10px; border-radius: 5px; margin-bottom: 10px; position: relative; }
 .delete-btn { position: absolute; top: 5px; right: 5px; background: none; border: none; color: var(--button-reset); font-size: 1.2rem; cursor: pointer; }
-textarea.history-comment { width: 95%; padding: 10px; margin-top: 10px; border-radius: 5px; border: 1px solid #444; background-color: #222; color: var(--text-color); }
+
+/* NEW: Style for clickable history notes */
+.history-comment-display {
+    width: 95%;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 5px;
+    border: 1px solid #444;
+    background-color: #222;
+    color: var(--text-color);
+    cursor: pointer;
+    min-height: 1.5em;
+    white-space: pre-wrap;
+    text-align: left;
+}
+.history-comment-display:hover {
+    background-color: #333;
+}
+
 
 /* PIN Display */
 .pin-display-area { margin-top: 20px; padding: 20px; border: 2px solid var(--primary-color); border-radius: 8px; display: none; }
 .pin-code { font-size: 1.8em; font-weight: bold; color: #798075; letter-spacing: 2px; word-break: break-all; }
 
 /* Game Specific Styles */
-.memory-game-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; max-width: 400px; margin: 20px auto; }
+.memory-game-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; max-width: 400px; margin: 20px auto; } /* Adjusted for more cards */
 .card { background-color: #555; border-radius: 8px; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: clamp(1.5rem, 8vw, 2.5rem); transition: transform 0.3s; transform-style: preserve-3d; }
 .card .card-face { backface-visibility: hidden; position: absolute; }
 .card .card-back { transform: rotateY(180deg); }
@@ -208,72 +251,4 @@ textarea.history-comment { width: 95%; padding: 10px; margin-top: 10px; border-r
     transform: translateX(-50%);
     background-color: var(--primary-color);
     color: var(--background-color);
-    padding: 1rem 1.5rem;
-    border-radius: 10px;
-    box-shadow: 0 -2px 15px rgba(0,0,0,0.5);
-    z-index: 2000;
-    transition: bottom 0.5s ease-in-out;
-    text-align: center;
-}
-
-.achievement-toast.show { bottom: 20px; }
-.achievement-toast h3 { margin: 0 0 5px 0; color: var(--background-color); }
-.achievement-toast p { margin: 0 0 5px 0; font-weight: bold; }
-
-/* Lockdown and Penalty Timers */
-.lockdown-timer {
-    margin-bottom: 1rem;
-    font-size: 1.2rem;
-    color: var(--button-reset);
-    font-weight: bold;
-    min-height: 1.5em;
-}
-
-/* Minefield Game */
-.minefield-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    width: 100%;
-    max-width: 350px;
-    margin: 2rem auto;
-}
-
-.minefield-tile {
-    background-color: #555;
-    border-radius: 8px;
-    aspect-ratio: 1 / 1;
-    cursor: pointer;
-    transition: transform 0.3s, background-color 0.3s;
-    transform-style: preserve-3d;
-}
-
-.minefield-tile.is-flipped {
-    transform: rotateY(180deg);
-    cursor: default;
-}
-
-.minefield-tile.is-flipped.safe {
-    background-color: var(--button-start);
-}
-
-.minefield-tile.is-flipped.mine {
-    background-color: var(--button-reset);
-}
-
-/* Miscellaneous */
-.reset-app-button {
-    display: none;
-}
-
-button.start-locktober {
-    background-color: #ff8c00; /* Orange for October */
-}
-
-.guess-timer {
-    font-size: 2rem;
-    font-weight: bold;
-    color: var(--button-reset);
-    margin-bottom: 1rem;
-    min-height: 2.5rem;
-}
+    padding
