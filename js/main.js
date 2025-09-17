@@ -82,7 +82,6 @@ function startNewTimer() {
     const timerType = document.querySelector('input[name="timerType"]:checked').value;
     const now = Date.now();
     
-    // *** NEW: Read the max duration input ***
     const maxDurationInput = document.getElementById('maxDurationInput');
     const maxHours = parseInt(maxDurationInput.value, 10);
     let maxEndTime = null;
@@ -90,12 +89,23 @@ function startNewTimer() {
         maxEndTime = now + (maxHours * 60 * 60 * 1000);
     }
 
+    // *** NEW: Read the selected games from the checkboxes ***
+    const enabledGamesCheckboxes = document.querySelectorAll('#game-config-options input[type="checkbox"]:checked');
+    let enabledGames = Array.from(enabledGamesCheckboxes).map(cb => cb.dataset.game);
+
+    // Fallback in case user unchecks all games, ensuring there's always at least one game.
+    if (enabledGames.length === 0) {
+        ui.showModal("No Games Selected", "At least one game must be enabled. Defaulting to all games for this session.");
+        enabledGames = ['memory', 'tictactoe', 'guessthenumber', 'simonsays'];
+    }
+
     state.currentTimer = {
         startTime: now,
         pin: state.pendingPin,
         isMinimum: timerType === 'random',
         minEndTime: null,
-        maxEndTime: maxEndTime, // *** NEW: Save the max end time ***
+        maxEndTime: maxEndTime,
+        enabledGames: enabledGames, // *** NEW: Save the list of enabled games ***
     };
 
     if (timerType === 'random') {
@@ -122,13 +132,15 @@ function startLocktoberTimer() {
         () => {
             const now = Date.now();
             const thirtyOneDaysInMs = 31 * 24 * 60 * 60 * 1000;
+            const allGames = ['memory', 'tictactoe', 'guessthenumber', 'simonsays'];
 
             state.currentTimer = {
                 startTime: now,
                 pin: state.pendingPin,
                 isMinimum: true,
                 minEndTime: now + thirtyOneDaysInMs,
-                maxEndTime: null, // Locktober has no safeguard override
+                maxEndTime: null,
+                enabledGames: allGames, // Locktober defaults to all games
             };
 
             setLocalStorage(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
@@ -190,17 +202,16 @@ function handleWheelResult(outcome) {
             timer.startUpdateInterval();
         });
     } else if (outcome.type === 'safe') {
-        // *** NEW: Random Game Selection Logic ***
-        const games = ['memory', 'tictactoe', 'guessthenumber', 'simonsays'];
+        // *** UPDATED to use the list of enabled games ***
+        const games = state.currentTimer.enabledGames;
         const randomGame = games[Math.floor(Math.random() * games.length)];
         const gameName = randomGame.charAt(0).toUpperCase() + randomGame.slice(1).replace('the', ' The ');
 
         ui.showModal("Challenge Issued!", `The wheel has granted you passage, but you must now face a random challenge: ${gameName}.`, false, () => {
-            // Start the randomly selected game directly
             startGame(randomGame);
         });
 
-    } else { // Double or Nothing
+    } else {
         setLocalStorage('chastity_is_double_or_nothing', true);
         ui.showModal("Double or Nothing!", "You must win the next high-pressure game. If you lose, your penalty will be DOUBLE your currently locked time.", false, () => {
             startGame('guessthenumber', true);
@@ -382,12 +393,13 @@ function setupEventListeners() {
         ui.switchScreen('timer-screen');
         timer.startUpdateInterval();
     });
-    document.getElementById('game-selection-buttons').addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON') {
-            const gameType = e.target.dataset.game;
-            startGame(gameType);
-        }
-    });
+    // This event listener is no longer needed as the game selection screen is gone.
+    // document.getElementById('game-selection-buttons').addEventListener('click', (e) => {
+    //     if (e.target.tagName === 'BUTTON') {
+    //         const gameType = e.target.dataset.game;
+    //         startGame(gameType);
+    //     }
+    // });
 }
 
 function initializeApp() {
