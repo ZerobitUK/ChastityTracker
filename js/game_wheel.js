@@ -9,25 +9,25 @@ const segmentCount = WHEEL_OUTCOMES.length;
 const segmentAngle = 360 / segmentCount;
 
 function setupWheel() {
-    wheelEl.innerHTML = ''; // Clear previous wheel
+    wheelEl.innerHTML = '';
     WHEEL_OUTCOMES.forEach((outcome, index) => {
         const rotation = segmentAngle * index;
 
-        // Create a container for the spoke and its text
         const container = document.createElement('div');
         container.classList.add('wheel-spoke-container');
         container.style.transform = `rotate(${rotation}deg)`;
 
-        // Create the visual line for the spoke
         const line = document.createElement('div');
         line.classList.add('wheel-spoke-line');
 
-        // Create the text element
         const text = document.createElement('div');
         text.classList.add('wheel-spoke-text');
         text.textContent = outcome.text;
         
-        // Counter-rotate the text to keep it horizontal
+        if (outcome.type === 'double') {
+            text.classList.add('double-or-nothing');
+        }
+        
         text.style.transform = `translateX(-50%) rotate(${-rotation}deg)`;
 
         container.appendChild(line);
@@ -41,7 +41,6 @@ function spin() {
     backButton.style.display = 'none';
     const winningSegmentIndex = Math.floor(Math.random() * segmentCount);
     
-    // The pointer is on the right (0 degrees), so we calculate the spin to align the winner
     const targetRotation = -(winningSegmentIndex * segmentAngle);
     const fullSpins = 5 + Math.floor(Math.random() * 3);
     const finalAngle = targetRotation + (360 * fullSpins);
@@ -70,14 +69,13 @@ export function initWheel(spinCallback) {
 
     const spinHandler = () => {
         spin();
-        spinButton.removeEventListener('click', spinHandler);
+        const newSpinButton = spinButton.cloneNode(true);
+        spinButton.parentNode.replaceChild(newSpinButton, spinButton);
+        window.spinButton = newSpinButton;
     };
     
-    // Ensure old listeners are cleared before adding a new one
     const newSpinButton = spinButton.cloneNode(true);
     spinButton.parentNode.replaceChild(newSpinButton, spinButton);
     newSpinButton.addEventListener('click', spinHandler);
-    
-    // Re-assign the global spinButton variable to the new button
     window.spinButton = newSpinButton;
 }
