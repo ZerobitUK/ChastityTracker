@@ -1,3 +1,5 @@
+import { STORAGE_KEY } from './constants.js';
+
 let sequence, playerSequence, level;
 const WIN_LEVEL = 5;
 let onWin, onLose;
@@ -12,7 +14,6 @@ function handleButtonClick(event) {
     const clickedColor = event.target.dataset.color;
     playerSequence.push(clickedColor);
 
-    // Flash the button on click
     event.target.classList.add('active');
     setTimeout(() => event.target.classList.remove('active'), 200);
 
@@ -22,6 +23,9 @@ function handleButtonClick(event) {
         onLose();
         return;
     }
+
+    setGameState({ sequence, playerSequence, level }); // Save state after correct input
+
     if (playerSequence.length === sequence.length) {
         if (level >= WIN_LEVEL) {
             statusEl.textContent = `Victory! You completed Level ${level}.`;
@@ -38,9 +42,8 @@ function playSequence() {
     buttons.forEach(button => button.classList.add('disabled'));
     let i = 0;
 
-    // *** NEW: Dynamic speed based on level ***
-    const intervalSpeed = Math.max(300, 1000 - (level * 75)); // Time between flashes
-    const flashDuration = Math.max(150, 500 - (level * 40));  // How long flash stays lit
+    const intervalSpeed = Math.max(300, 1000 - (level * 75));
+    const flashDuration = Math.max(150, 500 - (level * 40));
 
     const sequenceInterval = setInterval(() => {
         if (i >= sequence.length) {
@@ -68,10 +71,11 @@ function nextSequence() {
     statusEl.textContent = `Level ${level}`;
     const colors = ['red', 'green', 'blue', 'yellow'];
     sequence.push(colors[Math.floor(Math.random() * colors.length)]);
+    setGameState({ sequence, playerSequence, level });
     playSequence();
 }
 
-export function initSimonSays(winCallback, loseCallback) {
+export function initSimonSays(winCallback, loseCallback, savedState) {
     onWin = winCallback;
     onLose = loseCallback;
     document.getElementById('game-title').textContent = "Simon Says";
@@ -79,16 +83,25 @@ export function initSimonSays(winCallback, loseCallback) {
     gameContainer.style.display = 'grid';
     statusEl.style.display = 'block';
     
-    sequence = [];
-    playerSequence = [];
-    level = 0;
+    if (savedState && savedState.sequence) {
+        sequence = savedState.sequence;
+        playerSequence = savedState.playerSequence;
+        level = savedState.level;
+        playSequence();
+    } else {
+        sequence = [];
+        playerSequence = [];
+        level = 0;
+        setTimeout(nextSequence, 1000);
+    }
     
     buttons.forEach(button => {
-        // A more robust way to handle event listeners to avoid duplicates
         const newButton = button.cloneNode(true);
         button.parentNode.replaceChild(newButton, button);
         newButton.addEventListener('click', handleButtonClick);
     });
+}
 
-    setTimeout(nextSequence, 1000);
+function setGameState(newState) {
+    localStorage.setItem(STORAGE_KEY.GAME_STATE, JSON.stringify(newState));
 }
