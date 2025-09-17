@@ -4,6 +4,11 @@ const AI = 'O';
 let onWin, onLose;
 
 const gameContainer = document.getElementById('tictactoe-game-container');
+const winConditions = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+    [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+    [0, 4, 8], [2, 4, 6]             // diagonals
+];
 
 function lockBoard() {
     const cells = gameContainer.querySelectorAll('.tictactoe-cell');
@@ -17,9 +22,7 @@ function handleCellClick(event) {
     const index = event.target.dataset.index;
     if (board[index] !== '') return;
 
-    // Immediately lock the board to prevent further player clicks
     lockBoard(); 
-
     board[index] = PLAYER;
     renderBoard();
 
@@ -27,64 +30,77 @@ function handleCellClick(event) {
         setTimeout(() => onWin(), 100);
         return;
     }
-    if (board.every(cell => cell !== '')) {
-        setTimeout(() => onWin(), 100);
+    if (getEmptyCells().length === 0) {
+        setTimeout(() => onWin(), 100); // Draw is a reprieve
         return;
     }
     
-    // AI's turn
     setTimeout(aiMove, 500);
 }
 
+function checkWin(symbol, currentBoard = board) {
+    return winConditions.some(c => c.every(i => currentBoard[i] === symbol));
+}
+
+function getEmptyCells(currentBoard = board) {
+    return currentBoard.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
+}
+
+// *** NEW: Unbeatable Minimax AI ***
 function aiMove() {
-    let move = findBestMove(AI);
-    if (move !== -1) {
+    let bestScore = -Infinity;
+    let move;
+    const emptyCells = getEmptyCells();
+
+    for (const cellIndex of emptyCells) {
+        board[cellIndex] = AI;
+        let score = minimax(board, 0, false);
+        board[cellIndex] = ''; // backtrack
+        if (score > bestScore) {
+            bestScore = score;
+            move = cellIndex;
+        }
+    }
+
+    if (move !== undefined) {
         board[move] = AI;
         renderBoard();
         if (checkWin(AI)) {
             lockBoard();
             setTimeout(() => onLose(), 100);
+        } else if (getEmptyCells().length === 0) {
+            lockBoard();
+            setTimeout(() => onWin(), 100); // Draw is a reprieve
         }
-        return;
-    }
-    move = findBestMove(PLAYER);
-    if (move !== -1) {
-        board[move] = AI;
-        renderBoard();
-        return;
-    }
-    if (board[4] === '') {
-        board[4] = AI;
-        renderBoard();
-        return;
-    }
-    const corners = [0, 2, 6, 8].filter(i => board[i] === '');
-    if (corners.length > 0) {
-        board[corners[Math.floor(Math.random() * corners.length)]] = AI;
-        renderBoard();
-        return;
-    }
-    const openSpots = board.map((val, idx) => val === '' ? idx : null).filter(val => val !== null);
-    if (openSpots.length > 0) {
-        board[openSpots[0]] = AI;
-        renderBoard();
     }
 }
 
-function findBestMove(symbol) {
-    const winConditions = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
-    for (const condition of winConditions) {
-        const [a, b, c] = condition;
-        if (board[a] === symbol && board[b] === symbol && board[c] === '') return c;
-        if (board[a] === symbol && board[c] === symbol && board[b] === '') return b;
-        if (board[b] === symbol && board[c] === symbol && board[a] === '') return a;
-    }
-    return -1;
-}
+const scores = { [AI]: 10, [PLAYER]: -10, draw: 0 };
 
-function checkWin(symbol) {
-    const winConditions = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
-    return winConditions.some(c => c.every(i => board[i] === symbol));
+function minimax(currentBoard, depth, isMaximizing) {
+    if (checkWin(AI, currentBoard)) return scores[AI] - depth;
+    if (checkWin(PLAYER, currentBoard)) return scores[PLAYER] + depth;
+    if (getEmptyCells(currentBoard).length === 0) return scores.draw;
+
+    if (isMaximizing) {
+        let bestScore = -Infinity;
+        for (const cellIndex of getEmptyCells(currentBoard)) {
+            currentBoard[cellIndex] = AI;
+            let score = minimax(currentBoard, depth + 1, false);
+            currentBoard[cellIndex] = '';
+            bestScore = Math.max(score, bestScore);
+        }
+        return bestScore;
+    } else {
+        let bestScore = Infinity;
+        for (const cellIndex of getEmptyCells(currentBoard)) {
+            currentBoard[cellIndex] = PLAYER;
+            let score = minimax(currentBoard, depth + 1, true);
+            currentBoard[cellIndex] = '';
+            bestScore = Math.min(score, bestScore);
+        }
+        return bestScore;
+    }
 }
 
 function renderBoard() {
