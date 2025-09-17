@@ -1,4 +1,4 @@
-import { updateTimerDisplay, updateTimerMessage, toggleUnlockButton, updateLockdownTimer, updateDoubledPenaltyTimer } from './ui.js';
+import { showFinishedState, updateTimerDisplay, updateTimerMessage, toggleUnlockButton, updateLockdownTimer, updateDoubledPenaltyTimer } from './ui.js';
 import { STORAGE_KEY } from './constants.js';
 
 let timerInterval = null;
@@ -22,6 +22,19 @@ export function startUpdateInterval() {
         }
 
         const now = Date.now();
+        
+        // *** NEW: Check for max duration override FIRST ***
+        if (currentTimer.maxEndTime && now >= currentTimer.maxEndTime) {
+            // Use the UI function to show the end state, which reveals the 'End Session' button.
+            showFinishedState(currentTimer.pin); 
+            // Ensure the timer display doesn't exceed the max time.
+            updateTimerDisplay(currentTimer.maxEndTime - currentTimer.startTime); 
+            // Override any other message to show the max time was reached.
+            updateTimerMessage('Maximum session time reached.'); 
+            // Stop further processing to bypass all penalties and lockdowns.
+            return; 
+        }
+
         updateTimerDisplay(now - currentTimer.startTime);
         
         const doubledPenalty = getLocalStorage('chastity_doubled_penalty');
