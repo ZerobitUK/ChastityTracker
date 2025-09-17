@@ -81,12 +81,23 @@ function grantAchievement(id) {
 function startNewTimer() {
     const timerType = document.querySelector('input[name="timerType"]:checked').value;
     const now = Date.now();
+    
+    // *** NEW: Read the max duration input ***
+    const maxDurationInput = document.getElementById('maxDurationInput');
+    const maxHours = parseInt(maxDurationInput.value, 10);
+    let maxEndTime = null;
+    if (!isNaN(maxHours) && maxHours > 0) {
+        maxEndTime = now + (maxHours * 60 * 60 * 1000);
+    }
+
     state.currentTimer = {
         startTime: now,
         pin: state.pendingPin,
         isMinimum: timerType === 'random',
         minEndTime: null,
+        maxEndTime: maxEndTime, // *** NEW: Save the max end time ***
     };
+
     if (timerType === 'random') {
         const minHours = 12;
         const maxHours = 72;
@@ -117,6 +128,7 @@ function startLocktoberTimer() {
                 pin: state.pendingPin,
                 isMinimum: true,
                 minEndTime: now + thirtyOneDaysInMs,
+                maxEndTime: null, // Locktober has no safeguard override
             };
 
             setLocalStorage(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
@@ -133,120 +145,104 @@ function startLocktoberTimer() {
  * If clear, it proceeds to the Wheel of Fortune.
  */
 function attemptUnlock() {
-    // This is the primary check for an active lockdown, which is now correctly set by the random event.
-    const activeLockdown = getLocalStorage('chastity_active_lockdown'); //
-    if (activeLockdown && Date.now() < activeLockdown.expiry) { //
-        const timeLeftMs = activeLockdown.expiry - Date.now(); //
-        const hours = Math.floor(timeLeftMs / (1000 * 60 * 60)); //
-        const minutes = Math.floor((timeLeftMs % (1000 * 60 * 60)) / (1000 * 60)); //
-        ui.showModal("Lockdown Active", `You cannot attempt an unlock. ${hours}h ${minutes}m remaining.`); //
-        return; //
+    const activeLockdown = getLocalStorage('chastity_active_lockdown');
+    if (activeLockdown && Date.now() < activeLockdown.expiry) {
+        const timeLeftMs = activeLockdown.expiry - Date.now();
+        const hours = Math.floor(timeLeftMs / (1000 * 60 * 60));
+        const minutes = Math.floor((timeLeftMs % (1000 * 60 * 60)) / (1000 * 60));
+        ui.showModal("Lockdown Active", `You cannot attempt an unlock. ${hours}h ${minutes}m remaining.`);
+        return;
     }
-
-    // This check handles any penalties from losing games.
-    const penaltyEnd = getLocalStorage(STORAGE_KEY.PENALTY_END); //
-    if (penaltyEnd && Date.now() < penaltyEnd) { //
-        const minutes = Math.ceil((penaltyEnd - Date.now()) / 60000); //
-        ui.showModal("Penalty Active", `You cannot attempt an unlock for another ${minutes} minute(s).`); //
-        return; //
+    
+    const penaltyEnd = getLocalStorage(STORAGE_KEY.PENALTY_END);
+    if (penaltyEnd && Date.now() < penaltyEnd) {
+        const minutes = Math.ceil((penaltyEnd - Date.now()) / 60000);
+        ui.showModal("Penalty Active", `You cannot attempt an unlock for another ${minutes} minute(s).`);
+        return;
     }
-
-    // 25% chance of triggering a random event.
-    if (Math.random() < 0.25) { //
-        const event = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)]; //
-        const eventExpiry = Date.now() + event.duration; //
-
-        // ***FIX APPLIED HERE***
-        // If the random event is a lockdown, set the specific 'chastity_active_lockdown' key.
-        if (event.name.includes('Lockdown')) { //
-            setLocalStorage('chastity_active_lockdown', { expiry: eventExpiry }); //
+    
+    if (Math.random() < 0.25) {
+        const event = RANDOM_EVENTS[Math.floor(Math.random() * RANDOM_EVENTS.length)];
+        const eventExpiry = Date.now() + event.duration;
+        
+        if (event.name.includes('Lockdown')) {
+            setLocalStorage('chastity_active_lockdown', { expiry: eventExpiry });
         } else {
-            // For other events (like Moment of Mercy), set the general event key.
-            setLocalStorage('chastity_active_event', { ...event, expiry: eventExpiry }); //
+            setLocalStorage('chastity_active_event', { ...event, expiry: eventExpiry });
         }
-
-        ui.showModal(event.name, event.description); //
-        // Immediately refresh the timer UI to show the new lockdown status if applicable.
+        
+        ui.showModal(event.name, event.description);
         timer.startUpdateInterval();
-        return; //
+        return;
     }
-
-    timer.stopUpdateInterval(); // Pause timer updates while playing a game //
-    ui.switchScreen('wheel-screen'); //
-    initWheel(handleWheelResult); //
+    
+    timer.stopUpdateInterval();
+    ui.switchScreen('wheel-screen');
+    initWheel(handleWheelResult);
 }
 
 function handleWheelResult(outcome) {
-    if (outcome.type === 'penalty') { //
-        const penaltyEndTime = Date.now() + outcome.duration; //
-        setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime); //
-        ui.showModal("Penalty!", `The wheel has spoken. A ${outcome.duration / 60000}-minute penalty has been applied.`, false, () => { //
-            ui.switchScreen('timer-screen'); //
-            timer.startUpdateInterval(); //
+    if (outcome.type === 'penalty') {
+        const penaltyEndTime = Date.now() + outcome.duration;
+        setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
+        ui.showModal("Penalty!", `The wheel has spoken. A ${outcome.duration / 60000}-minute penalty has been applied.`, false, () => {
+            ui.switchScreen('timer-screen');
+            timer.startUpdateInterval();
         });
-    } else if (outcome.type === 'safe') { //
-        ui.showModal("Safe!", "The wheel grants you safe passage. You may now attempt a game.", false, () => { //
-            ui.switchScreen('game-selection-screen'); //
+    } else if (outcome.type === 'safe') {
+        ui.showModal("Safe!", "The wheel grants you safe passage. You may now attempt a game.", false, () => {
+            ui.switchScreen('game-selection-screen');
         });
-    } else { // Double or Nothing //
-        setLocalStorage('chastity_is_double_or_nothing', true); //
-        ui.showModal("Double or Nothing!", "You must win the next high-pressure game. If you lose, your penalty will be DOUBLE your currently locked time.", false, () => { //
-            startGame('guessthenumber', true); //
+    } else {
+        setLocalStorage('chastity_is_double_or_nothing', true);
+        ui.showModal("Double or Nothing!", "You must win the next high-pressure game. If you lose, your penalty will be DOUBLE your currently locked time.", false, () => {
+            startGame('guessthenumber', true);
         });
     }
 }
 
 function startGame(gameType, isSuddenDeath = false) {
-    setLocalStorage('chastity_selected_game', gameType); //
-    ui.switchScreen('game-screen'); //
-    document.querySelectorAll('.game-container').forEach(c => c.style.display = 'none'); //
-    state.currentGame = gameType; //
-    const savedGameState = getLocalStorage(STORAGE_KEY.GAME_STATE); //
+    setLocalStorage('chastity_selected_game', gameType);
+    ui.switchScreen('game-screen');
+    document.querySelectorAll('.game-container').forEach(c => c.style.display = 'none');
+    state.currentGame = gameType;
+    const savedGameState = getLocalStorage(STORAGE_KEY.GAME_STATE);
     
-    if (gameType === 'guessthenumber') { //
-        initGuessTheNumber(winGame, loseGame, isSuddenDeath); //
-    } else if (gameType === 'memory') { //
-        initMemoryGame(winGame, loseGame, savedGameState); //
-    } else if (gameType === 'tictactoe') { //
-        initTicTacToe(winGame, loseGame); //
-    } else if (gameType === 'simonsays') { //
-        initSimonSays(winGame, loseGame); //
+    if (gameType === 'guessthenumber') {
+        initGuessTheNumber(winGame, loseGame, isSuddenDeath);
+    } else if (gameType === 'memory') {
+        initMemoryGame(winGame, loseGame, savedGameState);
+    } else if (gameType === 'tictactoe') {
+        initTicTacToe(winGame, loseGame);
+    } else if (gameType === 'simonsays') {
+        initSimonSays(winGame, loseGame);
     }
 }
 
-/**
- * Handles the logic for winning a game.
- * If it's a normal win, the user can end the session.
- * If it's a "Double or Nothing" win, the timer continues.
- */
 function winGame() {
-    const isDoubleOrNothing = getLocalStorage('chastity_is_double_or_nothing'); //
-
-    localStorage.removeItem(STORAGE_KEY.GAME_STATE); //
-    localStorage.removeItem('chastity_selected_game'); //
-    localStorage.removeItem('chastity_is_double_or_nothing'); //
-    state.gameAttempts.push({ name: state.currentGame, result: 'Win', penalty: 0 }); //
-    grantAchievement('winGame'); //
-
-    if (isDoubleOrNothing) { //
-        // If it was a "Double or Nothing" win, return to the timer
-        ui.showModal("Success!", "You survived Sudden Death. The timer continues.", false, () => { //
-            ui.switchScreen('timer-screen'); //
-            timer.startUpdateInterval(); //
+    const isDoubleOrNothing = getLocalStorage('chastity_is_double_or_nothing');
+    
+    localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+    localStorage.removeItem('chastity_selected_game');
+    localStorage.removeItem('chastity_is_double_or_nothing');
+    state.gameAttempts.push({ name: state.currentGame, result: 'Win', penalty: 0 });
+    grantAchievement('winGame');
+    
+    if (isDoubleOrNothing) {
+        ui.showModal("Success!", "You survived Sudden Death. The timer continues.", false, () => {
+            ui.switchScreen('timer-screen');
+            timer.startUpdateInterval();
         });
     } else {
-        // For a normal win, allow the session to end
-        timer.stopUpdateInterval(); //
-        const endTime = Date.now(); //
-        ui.updateTimerDisplay(endTime - state.currentTimer.startTime); //
-        ui.showFinishedState(state.currentTimer.pin, endTime); //
-        ui.showModal("Success!", "You have earned your release. You may now end your session.", false, () => { //
-            ui.switchScreen('timer-screen'); //
+        timer.stopUpdateInterval();
+        const endTime = Date.now();
+        ui.updateTimerDisplay(endTime - state.currentTimer.startTime);
+        ui.showFinishedState(state.currentTimer.pin, endTime);
+        ui.showModal("Success!", "You have earned your release. You may now end your session.", false, () => {
+            ui.switchScreen('timer-screen');
         });
     }
 }
-
-// Located inside js/main.js
 
 function loseGame() {
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
@@ -255,7 +251,7 @@ function loseGame() {
     let penaltyMessage;
 
     const isDoubleOrNothing = getLocalStorage('chastity_is_double_or_nothing');
-    localStorage.removeItem('chastity_is_double_or_nothing'); // Moved this up to clean up immediately
+    localStorage.removeItem('chastity_is_double_or_nothing');
 
     if (isDoubleOrNothing) {
         const elapsedTime = Date.now() - state.currentTimer.startTime;
@@ -265,9 +261,7 @@ function loseGame() {
         const hours = Math.floor((penalty % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((penalty % (1000 * 60 * 60)) / (1000 * 60));
         penaltyMessage = `You failed Sudden Death! A massive penalty of ${days}d ${hours}h ${minutes}m has been applied.`;
-
-        // ***FIX APPLIED HERE***
-        // Use the correct local storage key for the doubled penalty
+        
         const penaltyExpiry = Date.now() + penalty;
         setLocalStorage('chastity_doubled_penalty', { expiry: penaltyExpiry });
 
@@ -279,7 +273,6 @@ function loseGame() {
         }
         penaltyMessage = `A penalty of ${penalty / 60000} minutes has been applied.`;
         
-        // For a normal loss, set the standard penalty key
         const penaltyEndTime = Date.now() + penalty;
         setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
     }
@@ -288,151 +281,134 @@ function loseGame() {
     if (state.gameAttempts.filter(a => a.result === 'Loss').length >= 3) {
         grantAchievement('lose3');
     }
-
-    // This part is no longer needed for the doubled penalty case
-    // let totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0;
-    // totalPenalty += penalty;
-    // setLocalStorage(STORAGE_KEY.TOTAL_PENALTY, totalPenalty);
-
+    
     ui.showModal("Failure", penaltyMessage, false, () => {
         ui.switchScreen('timer-screen');
         timer.startUpdateInterval(); 
     });
 }
-/**
- * Handles the logic for losing a game.
- * Applies a penalty, which is doubled if it's a "Double or Nothing" game.
- */
 
-/**
- * Ends the current session, saves it to history, and resets the application state
- * for a new session.
- */
 function endSession() {
-    if (!state.currentTimer) return; //
-    const endTime = Date.now(); //
-    const duration = endTime - state.currentTimer.startTime; //
-    if (duration >= 7 * 24 * 60 * 60 * 1000) grantAchievement('lock7d'); //
-    else if (duration >= 24 * 60 * 60 * 1000) grantAchievement('lock24h'); //
-    const totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0; //
-    const historyItem = { //
-        startTime: state.currentTimer.startTime, //
-        endTime: endTime, //
-        pin: state.currentTimer.pin, //
-        comment: '', //
-        penaltyTime: totalPenalty, //
-        gameAttempts: state.gameAttempts, //
+    if (!state.currentTimer) return;
+    const endTime = Date.now();
+    const duration = endTime - state.currentTimer.startTime;
+    if (duration >= 7 * 24 * 60 * 60 * 1000) grantAchievement('lock7d');
+    else if (duration >= 24 * 60 * 60 * 1000) grantAchievement('lock24h');
+    const totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0;
+    const historyItem = {
+        startTime: state.currentTimer.startTime,
+        endTime: endTime,
+        pin: state.currentTimer.pin,
+        comment: '',
+        penaltyTime: totalPenalty,
+        gameAttempts: state.gameAttempts,
     };
-    state.history.unshift(historyItem); //
-    saveHistory(); //
-    state.currentTimer = null; //
-    state.gameAttempts = []; //
-    localStorage.removeItem(STORAGE_KEY.CURRENT_TIMER); //
-    localStorage.removeItem(STORAGE_KEY.TOTAL_PENALTY); //
-    localStorage.removeItem(STORAGE_KEY.PENALTY_END); //
-    localStorage.removeItem(STORAGE_KEY.GAME_STATE); //
-    localStorage.removeItem('chastity_active_event'); //
-    localStorage.removeItem('chastity_active_lockdown'); //
-    localStorage.removeItem('chastity_is_double_or_nothing'); //
-    state.pendingPin = generatePin(); //
-    setLocalStorage(STORAGE_KEY.PENDING_PIN, state.pendingPin); //
-    ui.renderUIForNoTimer(state.pendingPin); //
-    ui.renderHistory(state.history, saveComment, deleteHistoryItem); //
-    ui.switchScreen('timer-screen'); //
+    state.history.unshift(historyItem);
+    saveHistory();
+    state.currentTimer = null;
+    state.gameAttempts = [];
+    localStorage.removeItem(STORAGE_KEY.CURRENT_TIMER);
+    localStorage.removeItem(STORAGE_KEY.TOTAL_PENALTY);
+    localStorage.removeItem(STORAGE_KEY.PENALTY_END);
+    localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+    localStorage.removeItem('chastity_active_event');
+    localStorage.removeItem('chastity_active_lockdown');
+    localStorage.removeItem('chastity_is_double_or_nothing');
+    state.pendingPin = generatePin();
+    setLocalStorage(STORAGE_KEY.PENDING_PIN, state.pendingPin);
+    ui.renderUIForNoTimer(state.pendingPin);
+    ui.renderHistory(state.history, saveComment, deleteHistoryItem);
+    ui.switchScreen('timer-screen');
 }
 
 function resetApp() {
-    ui.showModal( "Reset All Data?", "This will permanently delete all timer and history data. This cannot be undone.", true, () => { //
-        localStorage.clear(); //
-        loadState(); //
-        initializeApp(); //
-        ui.showModal("Success", "All application data has been reset."); //
+    ui.showModal( "Reset All Data?", "This will permanently delete all timer and history data. This cannot be undone.", true, () => {
+        localStorage.clear();
+        loadState();
+        initializeApp();
+        ui.showModal("Success", "All application data has been reset.");
     });
 }
 
-// --- History Management ---
-
 function saveComment(index, text) {
-    if (state.history[index]) { //
-        state.history[index].comment = text; //
-        saveHistory(); //
+    if (state.history[index]) {
+        state.history[index].comment = text;
+        saveHistory();
     }
 }
 
 function deleteHistoryItem(index) {
-     ui.showModal( "Delete Session?", "Are you sure you want to delete this history item permanently?", true, () => { //
-        state.history.splice(index, 1); //
-        saveHistory(); //
-        ui.renderHistory(state.history, saveComment, deleteHistoryItem); //
+     ui.showModal( "Delete Session?", "Are you sure you want to delete this history item permanently?", true, () => {
+        state.history.splice(index, 1);
+        saveHistory();
+        ui.renderHistory(state.history, saveComment, deleteHistoryItem);
     });
 }
 
-// --- UI Initialization ---
-
 function startQuoteFlipper() {
-    const quoteBanner = document.getElementById('quote-banner'); //
-    if (!quoteBanner) return; //
-    const initialIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length); //
-    quoteBanner.textContent = MOTIVATIONAL_QUOTES[initialIndex]; //
-    setInterval(() => { //
-        quoteBanner.style.opacity = '0'; //
-        setTimeout(() => { //
-            const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length); //
-            quoteBanner.textContent = MOTIVATIONAL_QUOTES[randomIndex]; //
-            quoteBanner.style.opacity = '1'; //
+    const quoteBanner = document.getElementById('quote-banner');
+    if (!quoteBanner) return;
+    const initialIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+    quoteBanner.textContent = MOTIVATIONAL_QUOTES[initialIndex];
+    setInterval(() => {
+        quoteBanner.style.opacity = '0';
+        setTimeout(() => {
+            const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+            quoteBanner.textContent = MOTIVATIONAL_QUOTES[randomIndex];
+            quoteBanner.style.opacity = '1';
         }, 1000);
-    }, QUOTE_FLIP_INTERVAL_MS); //
+    }, QUOTE_FLIP_INTERVAL_MS);
 }
 
 function setupEventListeners() {
-    document.getElementById('start-button').addEventListener('click', startNewTimer); //
-    document.getElementById('start-locktober-button').addEventListener('click', startLocktoberTimer); //
-    document.getElementById('unlock-button').addEventListener('click', attemptUnlock); //
-    document.getElementById('reset-button').addEventListener('click', endSession); //
-    document.getElementById('reset-app-button').addEventListener('click', resetApp); //
-    document.getElementById('back-to-timer-btn').addEventListener('click', () => ui.switchScreen('timer-screen')); //
-    document.getElementById('back-to-selection-btn').addEventListener('click', () => { //
-        ui.switchScreen('timer-screen'); //
-        timer.startUpdateInterval(); //
+    document.getElementById('start-button').addEventListener('click', startNewTimer);
+    document.getElementById('start-locktober-button').addEventListener('click', startLocktoberTimer);
+    document.getElementById('unlock-button').addEventListener('click', attemptUnlock);
+    document.getElementById('reset-button').addEventListener('click', endSession);
+    document.getElementById('reset-app-button').addEventListener('click', resetApp);
+    document.getElementById('back-to-timer-btn').addEventListener('click', () => ui.switchScreen('timer-screen'));
+    document.getElementById('back-to-selection-btn').addEventListener('click', () => {
+        ui.switchScreen('timer-screen');
+        timer.startUpdateInterval();
     });
-    document.getElementById('wheel-back-btn').addEventListener('click', () => { //
-        ui.switchScreen('timer-screen'); //
-        timer.startUpdateInterval(); //
+    document.getElementById('wheel-back-btn').addEventListener('click', () => {
+        ui.switchScreen('timer-screen');
+        timer.startUpdateInterval();
     });
-    document.getElementById('game-selection-buttons').addEventListener('click', (e) => { //
-        if (e.target.tagName === 'BUTTON') { //
-            const gameType = e.target.dataset.game; //
-            startGame(gameType); //
+    document.getElementById('game-selection-buttons').addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            const gameType = e.target.dataset.game;
+            startGame(gameType);
         }
     });
 }
 
 function initializeApp() {
-    loadState(); //
-    if (!state.currentTimer) { //
-        localStorage.removeItem(STORAGE_KEY.GAME_STATE); //
-        localStorage.removeItem('chastity_selected_game'); //
+    loadState();
+    if (!state.currentTimer) {
+        localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+        localStorage.removeItem('chastity_selected_game');
     }
-    const pendingSelectedGame = getLocalStorage('chastity_selected_game'); //
-    const savedGameState = getLocalStorage(STORAGE_KEY.GAME_STATE); //
-    if (pendingSelectedGame) { //
-        startGame(pendingSelectedGame); //
-    } else if (state.currentTimer && savedGameState?.won) { //
-        const endTime = Date.now(); //
-        ui.updateTimerDisplay(endTime - state.currentTimer.startTime); //
-        ui.showFinishedState(state.currentTimer.pin, endTime); //
-    } else if (state.currentTimer) { //
-        ui.renderUIForActiveTimer(state.currentTimer.startTime); //
-        timer.startUpdateInterval(); //
+    const pendingSelectedGame = getLocalStorage('chastity_selected_game');
+    const savedGameState = getLocalStorage(STORAGE_KEY.GAME_STATE);
+    if (pendingSelectedGame) {
+        startGame(pendingSelectedGame);
+    } else if (state.currentTimer && savedGameState?.won) {
+        const endTime = Date.now();
+        ui.updateTimerDisplay(endTime - state.currentTimer.startTime);
+        ui.showFinishedState(state.currentTimer.pin, endTime);
+    } else if (state.currentTimer) {
+        ui.renderUIForActiveTimer(state.currentTimer.startTime);
+        timer.startUpdateInterval();
     } else {
-        ui.renderUIForNoTimer(state.pendingPin); //
+        ui.renderUIForNoTimer(state.pendingPin);
     }
-    ui.renderHistory(state.history, saveComment, deleteHistoryItem); //
-    setupEventListeners(); //
-    startQuoteFlipper(); //
-    if (!pendingSelectedGame) { //
-        ui.switchScreen('timer-screen'); //
+    ui.renderHistory(state.history, saveComment, deleteHistoryItem);
+    setupEventListeners();
+    startQuoteFlipper();
+    if (!pendingSelectedGame) {
+        ui.switchScreen('timer-screen');
     }
 }
 
-initializeApp(); //
+initializeApp();
