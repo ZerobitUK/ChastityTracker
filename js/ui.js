@@ -30,6 +30,10 @@ const elements = {
     notesModalCloseBtn: document.getElementById('notes-modal-close-btn'),
     revealPinBtn: document.getElementById('reveal-pin-btn'),
     keyholderEmailBtn: document.getElementById('keyholder-email-btn'),
+    edgePointsDisplay: document.getElementById('edge-points-display'), // <-- NEW
+    edgeOptionsContainer: document.getElementById('edge-options-container'), // <-- NEW
+    edgeOptionNudge: document.getElementById('edge-option-nudge'), // <-- NEW
+    edgeOptionCalibrate: document.getElementById('edge-option-calibrate'), // <-- NEW
 };
 
 let confirmCallback = null;
@@ -111,6 +115,25 @@ export function updateTimerDisplay(durationMs) {
     elements.timer.textContent = `${String(days).padStart(2, '0')}d : ${String(hours).padStart(2, '0')}h : ${String(minutes).padStart(2, '0')}m : ${String(seconds).padStart(2, '0')}s`;
 }
 
+// --- NEW: Edge Points UI ---
+export function updateEdgePointsDisplay(points) {
+    elements.edgePointsDisplay.textContent = `Edge: ${points} EP`;
+}
+
+export function updateEdgeOptions(currentPoints) {
+    elements.edgeOptionsContainer.style.display = 'block';
+    const nudgeCost = parseInt(elements.edgeOptionNudge.dataset.cost, 10);
+    const calibrateCost = parseInt(elements.edgeOptionCalibrate.dataset.cost, 10);
+
+    elements.edgeOptionNudge.disabled = currentPoints < nudgeCost;
+    elements.edgeOptionCalibrate.disabled = currentPoints < calibrateCost;
+}
+
+export function hideEdgeOptions() {
+    elements.edgeOptionsContainer.style.display = 'none';
+}
+
+
 export function renderUIForActiveTimer(startTime) {
     elements.timerOptions.style.display = 'none';
     elements.practiceGamesPanel.style.display = 'none';
@@ -120,7 +143,7 @@ export function renderUIForActiveTimer(startTime) {
     elements.startButton.style.display = 'none';
     elements.startLocktoberButton.style.display = 'none';
     elements.unlockButton.style.display = 'block';
-    elements.resetButton.style.display = 'block';
+    elements.resetButton.style.display = 'none';
     elements.pinDisplay.style.display = 'none';
 }
 
