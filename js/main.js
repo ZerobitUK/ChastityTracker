@@ -361,4 +361,131 @@ function endSession(force = false) {
     if (!force) {
         const endTime = Date.now();
         const duration = endTime - state.currentTimer.startTime;
-        if (duration >= 7 * 24 * 60 * 60 * 100
+        if (duration >= 7 * 24 * 60 * 60 * 1000) grantAchievement('lock7d');
+        else if (duration >= 24 * 60 * 60 * 1000) grantAchievement('lock24h');
+        const totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0;
+        const historyItem = {
+            startTime: state.currentTimer.startTime,
+            endTime: endTime,
+            pin: state.currentTimer.pin,
+            comment: '',
+            penaltyTime: totalPenalty,
+            gameAttempts: state.gameAttempts,
+        };
+        state.history.unshift(historyItem);
+        saveHistory();
+    }
+
+    state.currentTimer = null;
+    state.gameAttempts = [];
+    localStorage.removeItem(STORAGE_KEY.CURRENT_TIMER);
+    localStorage.removeItem(STORAGE_KEY.TOTAL_PENALTY);
+    localStorage.removeItem(STORAGE_KEY.PENALTY_END);
+    localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+    localStorage.removeItem('chastity_active_event');
+    localStorage.removeItem('chastity_active_lockdown');
+    localStorage.removeItem('chastity_is_double_or_nothing');
+    state.pendingPin = generatePin();
+    setLocalStorage(STORAGE_KEY.PENDING_PIN, state.pendingPin);
+    ui.renderUIForNoTimer(state.pendingPin);
+    ui.renderHistory(state.history, saveComment, ui.showNotesModal);
+    ui.switchScreen('timer-screen');
+}
+
+function resetApp() {
+    ui.showModal( "Reset All Data?", "This will permanently delete all timer and history data. This cannot be undone.", true, () => {
+        localStorage.clear();
+        loadState();
+        initializeApp();
+        ui.showModal("Success", "All application data has been reset.");
+    });
+}
+
+function saveComment(index, text) {
+    if (state.history[index]) {
+        state.history[index].comment = text;
+        saveHistory();
+        ui.renderHistory(state.history, saveComment, ui.showNotesModal);
+    }
+}
+
+function deleteHistoryItem(index) {
+     ui.showModal( "Delete Session?", "Are you sure you want to delete this history item permanently?", true, () => {
+        state.history.splice(index, 1);
+        saveHistory();
+        ui.renderHistory(state.history, saveComment, ui.showNotesModal);
+    });
+}
+
+function startQuoteFlipper() {
+    const quoteBanner = document.getElementById('quote-banner');
+    if (!quoteBanner) return;
+    const initialIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+    quoteBanner.textContent = MOTIVATIONAL_QUOTES[initialIndex];
+    setInterval(() => {
+        quoteBanner.style.opacity = '0';
+        setTimeout(() => {
+            const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+            quoteBanner.textContent = MOTIVATIONAL_QUOTES[randomIndex];
+            quoteBanner.style.opacity = '1';
+        }, 1000);
+    }, QUOTE_FLIP_INTERVAL_MS);
+}
+
+function setupEventListeners() {
+    document.getElementById('start-button').addEventListener('click', startNewTimer);
+    document.getElementById('start-locktober-button').addEventListener('click', startLocktoberTimer);
+    document.getElementById('unlock-button').addEventListener('click', attemptUnlock);
+    document.getElementById('reset-button').addEventListener('click', () => endSession(false));
+    document.getElementById('reset-app-button').addEventListener('click', resetApp);
+    document.getElementById('sound-toggle-btn').addEventListener('click', sounds.toggleMute);
+    
+    document.getElementById('back-to-selection-btn').addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+        ui.switchScreen('timer-screen');
+        timer.startUpdateInterval();
+    });
+    
+    document.getElementById('wheel-back-btn').addEventListener('click', () => {
+        ui.switchScreen('timer-screen');
+        timer.startUpdateInterval();
+    });
+
+    document.getElementById('practice-game-buttons').addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            const gameType = e.target.dataset.game;
+            startGame(gameType, practiceWin, practiceLose);
+        }
+    });
+    
+    ui.setupNotesModal(saveComment);
+}
+
+function initializeApp() {
+    loadState();
+    if (!state.currentTimer) {
+        localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+        localStorage.removeItem('chastity_selected_game');
+    }
+    const pendingSelectedGame = getLocalStorage('chastity_selected_game');
+    const savedGameState = getLocalStorage(STORAGE_KEY.GAME_STATE);
+    
+    if (pendingSelectedGame) {
+        startGame(pendingSelectedGame, winGame, loseGame);
+    } else if (state.currentTimer) {
+        ui.renderUIForActiveTimer(state.currentTimer.startTime);
+        timer.startUpdateInterval();
+    } else {
+        ui.renderUIForNoTimer(state.pendingPin);
+    }
+    
+    ui.renderHistory(state.history, saveComment, ui.showNotesModal);
+    setupEventListeners();
+    startQuoteFlipper();
+    
+    if (!pendingSelectedGame) {
+        ui.switchScreen('timer-screen');
+    }
+}
+
+initializeApp();
