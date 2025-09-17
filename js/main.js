@@ -190,10 +190,17 @@ function handleWheelResult(outcome) {
             timer.startUpdateInterval();
         });
     } else if (outcome.type === 'safe') {
-        ui.showModal("Safe!", "The wheel grants you safe passage. You may now attempt a game.", false, () => {
-            ui.switchScreen('game-selection-screen');
+        // *** NEW: Random Game Selection Logic ***
+        const games = ['memory', 'tictactoe', 'guessthenumber', 'simonsays'];
+        const randomGame = games[Math.floor(Math.random() * games.length)];
+        const gameName = randomGame.charAt(0).toUpperCase() + randomGame.slice(1).replace('the', ' The ');
+
+        ui.showModal("Challenge Issued!", `The wheel has granted you passage, but you must now face a random challenge: ${gameName}.`, false, () => {
+            // Start the randomly selected game directly
+            startGame(randomGame);
         });
-    } else {
+
+    } else { // Double or Nothing
         setLocalStorage('chastity_is_double_or_nothing', true);
         ui.showModal("Double or Nothing!", "You must win the next high-pressure game. If you lose, your penalty will be DOUBLE your currently locked time.", false, () => {
             startGame('guessthenumber', true);
