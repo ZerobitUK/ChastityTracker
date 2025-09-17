@@ -1,6 +1,5 @@
 const elements = {
     timerScreen: document.getElementById('timer-screen'),
-    gameSelectionScreen: document.getElementById('game-selection-screen'),
     gameScreen: document.getElementById('game-screen'),
     timer: document.getElementById('timer'),
     timerMessage: document.getElementById('timer-message'),
@@ -21,8 +20,8 @@ const elements = {
     modalMessage: document.getElementById('modal-message'),
     modalConfirmBtn: document.getElementById('modal-confirm-btn'),
     modalCloseBtn: document.getElementById('modal-close-btn'),
-    // *** NEW: Reference to the game config panel ***
-    gameConfigOptions: document.getElementById('game-config-options'),
+    // *** NEW: Reference to the practice games panel ***
+    practiceGamesPanel: document.getElementById('practice-games-panel'),
 };
 
 let confirmCallback = null;
@@ -76,9 +75,9 @@ export function updateTimerDisplay(durationMs) {
 }
 
 export function renderUIForActiveTimer(startTime) {
-    // *** HIDE timer and game options when timer starts ***
+    // *** HIDE setup options and practice games when timer starts ***
     elements.timerOptions.style.display = 'none';
-    elements.gameConfigOptions.style.display = 'none';
+    elements.practiceGamesPanel.style.display = 'none';
 
     elements.startDate.textContent = new Date(startTime).toLocaleString();
     elements.startButton.style.display = 'none';
@@ -89,9 +88,9 @@ export function renderUIForActiveTimer(startTime) {
 }
 
 export function renderUIForNoTimer(pendingPin) {
-    // *** SHOW timer and game options when there is no timer ***
+    // *** SHOW setup options and practice games when there is no timer ***
     elements.timerOptions.style.display = 'block';
-    elements.gameConfigOptions.style.display = 'block';
+    elements.practiceGamesPanel.style.display = 'block';
     
     elements.timer.textContent = '00d : 00h : 00m : 00s';
     elements.startDate.textContent = 'N/A';
