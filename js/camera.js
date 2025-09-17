@@ -45,12 +45,12 @@ export function stopCamera() {
  * @returns {string} The Base64 data URL of the captured image.
  */
 export function capturePhoto() {
-    const MAX_WIDTH = 800;
+    const MAX_WIDTH = 1280;
     const scale = MAX_WIDTH / elements.video.videoWidth;
     elements.canvas.width = MAX_WIDTH;
     elements.canvas.height = elements.video.videoHeight * scale;
     const context = elements.canvas.getContext('2d');
     context.drawImage(elements.video, 0, 0, elements.canvas.width, elements.canvas.height);
     stopCamera();
-    return elements.canvas.toDataURL('image/jpeg', 0.8); // Use JPEG for smaller file size
+    return elements.canvas.toDataURL('image/jpeg', 0.95); // Use JPEG for smaller file size
 }
