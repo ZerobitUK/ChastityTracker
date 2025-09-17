@@ -41,7 +41,7 @@ let saveNotesCallback = null;
 elements.modalCloseBtn.addEventListener('click', () => {
     if (typeof cancelCallback === 'function') {
         cancelCallback();
-    } 
+    }
     else if (elements.modalConfirmBtn.style.display === 'none' && typeof confirmCallback === 'function') {
         confirmCallback();
     }
@@ -125,7 +125,7 @@ export function renderUIForActiveTimer(startTime) {
 export function renderUIForNoTimer(pendingPin) {
     elements.timerOptions.style.display = 'block';
     elements.practiceGamesPanel.style.display = 'block';
-    
+
     elements.timer.textContent = '00d : 00h : 00m : 00s';
     elements.startDate.textContent = 'N/A';
     elements.startButton.style.display = 'block';
@@ -137,8 +137,13 @@ export function renderUIForNoTimer(pendingPin) {
     elements.pinCode.textContent = pendingPin;
 }
 
-export function updateTimerMessage(message = '') {
+export function updateTimerMessage(message = '', isPenalty = false) {
     elements.timerMessage.textContent = message;
+    if (isPenalty) {
+        elements.timerMessage.classList.add('penalty-message');
+    } else {
+        elements.timerMessage.classList.remove('penalty-message');
+    }
 }
 
 export function updateLockdownTimer(message = '') {
@@ -197,12 +202,12 @@ export function renderHistory(history, saveCommentCallback, showNotesModalCallba
         `;
         elements.historyContainer.appendChild(historyItemEl);
     });
-    
+
     elements.historyContainer.querySelectorAll('.delete-btn').forEach(el =>
         el.addEventListener('click', e => deleteHistoryItemCallback(e.target.dataset.index))
     );
-    
-    elements.historyContainer.querySelectorAll('.history-comment-display').forEach(el => 
+
+    elements.historyContainer.querySelectorAll('.history-comment-display').forEach(el =>
         el.addEventListener('click', e => {
             const index = e.target.dataset.index;
             showNotesModalCallback(index, history[index].comment || '');
@@ -228,7 +233,7 @@ export function showFinishedState(pin, isKeyholderMode) {
     elements.unlockButton.style.display = 'none';
     elements.resetButton.style.display = 'block';
     elements.pinDisplay.style.display = 'block';
-    
+
     elements.revealPinBtn.style.display = isKeyholderMode ? 'none' : 'inline-block';
     elements.keyholderEmailBtn.style.display = isKeyholderMode ? 'inline-block' : 'none';
 
