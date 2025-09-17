@@ -9,7 +9,8 @@ export const STORAGE_KEY = {
     PENDING_PHOTO: 'chastity_pending_photo',
     PENALTY_END: 'chastity_penalty_end',
     TOTAL_PENALTY: 'chastity_total_penalty_time',
-    GAME_STATE: 'chastity_game_state'
+    GAME_STATE: 'chastity_game_state',
+    EDGE_POINTS: 'chastity_edge_points' // <-- NEW
 };
 
 // Motivational Quotes Array
