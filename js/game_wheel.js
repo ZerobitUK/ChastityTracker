@@ -5,12 +5,14 @@ const spinButton = document.getElementById('spin-button');
 const backButton = document.getElementById('wheel-back-btn');
 
 let onSpinComplete;
-const segmentCount = WHEEL_OUTCOMES.length;
-const segmentAngle = 360 / segmentCount;
+let currentOutcomes = [];
 
 function setupWheel() {
     wheelEl.innerHTML = '';
-    WHEEL_OUTCOMES.forEach((outcome, index) => {
+    const segmentCount = currentOutcomes.length;
+    const segmentAngle = 360 / segmentCount;
+
+    currentOutcomes.forEach((outcome, index) => {
         const rotation = segmentAngle * index;
 
         const container = document.createElement('div');
@@ -28,8 +30,6 @@ function setupWheel() {
             text.classList.add('double-or-nothing');
         }
 
-        text.style.transform = `translateX(-50%) rotate(${-rotation}deg)`;
-
         container.appendChild(line);
         container.appendChild(text);
         wheelEl.appendChild(container);
@@ -39,6 +39,9 @@ function setupWheel() {
 function spin() {
     spinButton.disabled = true;
     backButton.style.display = 'none';
+    
+    const segmentCount = currentOutcomes.length;
+    const segmentAngle = 360 / segmentCount;
     const winningSegmentIndex = Math.floor(Math.random() * segmentCount);
 
     const targetRotation = -(winningSegmentIndex * segmentAngle);
@@ -48,14 +51,15 @@ function spin() {
     wheelEl.style.transform = `rotate(${finalAngle}deg)`;
 
     setTimeout(() => {
-        const winningOutcome = WHEEL_OUTCOMES[winningSegmentIndex];
+        const winningOutcome = currentOutcomes[winningSegmentIndex];
         backButton.style.display = 'block';
         onSpinComplete(winningOutcome);
     }, 5500);
 }
 
-export function initWheel(spinCallback) {
+export function initWheel(spinCallback, outcomes = null) {
     onSpinComplete = spinCallback;
+    currentOutcomes = outcomes || WHEEL_OUTCOMES;
     setupWheel();
     spinButton.disabled = false;
     backButton.style.display = 'none';
@@ -67,5 +71,9 @@ export function initWheel(spinCallback) {
         wheelEl.style.transition = 'transform 5s cubic-bezier(0.25, 1, 0.5, 1)';
     }, 50);
 
-    spinButton.addEventListener('click', spin, { once: true });
+    const spinHandler = () => {
+        spin();
+        spinButton.removeEventListener('click', spinHandler);
+    };
+    spinButton.addEventListener('click', spinHandler);
 }
