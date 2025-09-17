@@ -26,7 +26,7 @@ async function verifyTime() {
         const data = await response.json();
         const serverTime = new Date(data.utc_datetime).getTime();
         const localTime = Date.now();
-        
+
         // If the local time is more than 60 seconds ahead of server time, flag it.
         if (localTime > serverTime + 60000) {
             isTimeDesynced = true;
@@ -60,21 +60,21 @@ export function startUpdateInterval() {
         // If time is out of sync, pause everything and show a message
         if (isTimeDesynced) {
             updateTimerDisplay(now - currentTimer.startTime);
-            updateTimerMessage('System clock is incorrect. Timer paused.');
+            updateTimerMessage('System clock is incorrect. Timer paused.', true);
             toggleUnlockButton(false);
             return;
         }
-        
+
         // Check for max duration override FIRST
         if (currentTimer.maxEndTime && now >= currentTimer.maxEndTime) {
-            showFinishedState(currentTimer.pin, currentTimer.isKeyholderMode); 
-            updateTimerDisplay(currentTimer.maxEndTime - currentTimer.startTime); 
-            updateTimerMessage('Maximum session time reached.'); 
-            return; 
+            showFinishedState(currentTimer.pin, currentTimer.isKeyholderMode);
+            updateTimerDisplay(currentTimer.maxEndTime - currentTimer.startTime);
+            updateTimerMessage('Maximum session time reached.');
+            return;
         }
 
         updateTimerDisplay(now - currentTimer.startTime);
-        
+
         const doubledPenalty = getLocalStorage('chastity_doubled_penalty');
         if (doubledPenalty && now < doubledPenalty.expiry) {
             const timeLeft = doubledPenalty.expiry - now;
@@ -110,7 +110,7 @@ export function startUpdateInterval() {
             const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-            updateTimerMessage(`Penalty: Cannot unlock for ${days}d ${hours}h ${minutes}m ${seconds}s.`);
+            updateTimerMessage(`Penalty: Cannot unlock for ${days}d ${hours}h ${minutes}m ${seconds}s.`, true);
             toggleUnlockButton(false);
             return;
         }
@@ -125,7 +125,7 @@ export function startUpdateInterval() {
             toggleUnlockButton(false);
             return;
         }
-        
+
         updateTimerMessage(currentTimer.minEndTime ? 'Minimum time has been met.' : '');
         toggleUnlockButton(true);
     };
