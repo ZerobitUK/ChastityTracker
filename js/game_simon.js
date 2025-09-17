@@ -7,7 +7,7 @@ let canClick = false;
 
 const gameContainer = document.getElementById('simonsays-game-container');
 const statusEl = document.getElementById('simon-status');
-const buttons = gameContainer.querySelectorAll('.simon-button');
+const buttons = Array.from(gameContainer.querySelectorAll('.simon-button'));
 
 function handleButtonClick(event) {
     if (!canClick) return;
@@ -24,7 +24,7 @@ function handleButtonClick(event) {
         return;
     }
 
-    setGameState({ sequence, playerSequence, level }); // Save state after correct input
+    setGameState({ sequence, playerSequence, level });
 
     if (playerSequence.length === sequence.length) {
         if (level >= WIN_LEVEL) {
@@ -82,7 +82,11 @@ export function initSimonSays(winCallback, loseCallback, savedState) {
     document.getElementById('game-description').textContent = `Repeat the sequence correctly for ${WIN_LEVEL} levels.`;
     gameContainer.style.display = 'grid';
     statusEl.style.display = 'block';
-    
+
+    buttons.forEach(button => {
+        button.addEventListener('click', handleButtonClick);
+    });
+
     if (savedState && savedState.sequence) {
         sequence = savedState.sequence;
         playerSequence = savedState.playerSequence;
@@ -94,12 +98,6 @@ export function initSimonSays(winCallback, loseCallback, savedState) {
         level = 0;
         setTimeout(nextSequence, 1000);
     }
-    
-    buttons.forEach(button => {
-        const newButton = button.cloneNode(true);
-        button.parentNode.replaceChild(newButton, button);
-        newButton.addEventListener('click', handleButtonClick);
-    });
 }
 
 function setGameState(newState) {
