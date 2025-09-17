@@ -1,4 +1,4 @@
-import { MOTIVATIONAL_QUOTES, QUOTE_FLIP_INTERVAL_MS, STORAGE_KEY, PENALTY_DURATION_MS, ACHIEVEMENTS, RANDOM_EVENTS } from './constants.js';
+import { MOTIVATIONAL_QUOTES, QUOTE_FLIP_INTERVAL_MS, STORAGE_KEY, PENALTY_DURATION_MS, ACHIEVEMENTS, RANDOM_EVENTS, WHEEL_OUTCOMES } from './constants.js';
 import * as ui from './ui.js';
 import * as timer from './timer.js';
 import * as sounds from './sounds.js';
@@ -21,6 +21,7 @@ let state = {
     gameAttempts: [],
     achievements: {},
     currentGame: null,
+    edgePoints: 0, // <-- NEW
 };
 
 // --- Security / Checksum ---
@@ -76,6 +77,8 @@ function loadState() {
     state.pendingPin = getLocalStorage(STORAGE_KEY.PENDING_PIN);
     state.pendingPhoto = getLocalStorage(STORAGE_KEY.PENDING_PHOTO);
     state.achievements = getLocalStorage('chastity_achievements') || {};
+    state.edgePoints = getLocalStorage(STORAGE_KEY.EDGE_POINTS) || 0; // <-- NEW
+    ui.updateEdgePointsDisplay(state.edgePoints); // <-- NEW
     
     // Verify checksum if a timer is active
     if (state.currentTimer) {
@@ -99,6 +102,14 @@ function saveHistory() {
     setLocalStorage(STORAGE_KEY.HISTORY, state.history);
 }
 
+// --- NEW: Edge Points Logic ---
+function updateEdgePoints(amount) {
+    state.edgePoints = Math.max(0, state.edgePoints + amount);
+    setLocalStorage(STORAGE_KEY.EDGE_POINTS, state.edgePoints);
+    ui.updateEdgePointsDisplay(state.edgePoints);
+}
+
+
 // --- Core Logic ---
 
 function generatePin() {
@@ -114,6 +125,13 @@ function grantAchievement(id) {
         state.achievements[id] = true;
         setLocalStorage('chastity_achievements', state.achievements);
         ui.showAchievement(ACHIEVEMENTS[id]);
+        
+        // Award EP for achievements
+        const achievementEP = { 'lock24h': 25, 'lock7d': 100, 'lose3': 10, 'winGame': 10 };
+        if (achievementEP[id]) {
+            updateEdgePoints(achievementEP[id]);
+            ui.showModal("Edge Gained!", `You earned ${achievementEP[id]} EP for unlocking an achievement.`);
+        }
     }
 }
 
@@ -227,10 +245,12 @@ function attemptUnlock() {
     
     timer.stopUpdateInterval();
     ui.switchScreen('wheel-screen');
+    ui.updateEdgeOptions(state.edgePoints);
     initWheel(handleWheelResult);
 }
 
 function handleWheelResult(outcome) {
+    ui.hideEdgeOptions();
     sounds.playSound('spin', 0.5);
     if (outcome.type === 'penalty') {
         const penaltyEndTime = Date.now() + outcome.duration;
@@ -283,6 +303,7 @@ function startGame(gameType, onWin, onLose, isSuddenDeath = false) {
 // --- "Real" Game Callbacks ---
 function winGame() {
     sounds.playSound('win');
+    updateEdgePoints(5); // Award 5 EP for winning a game
     const isDoubleOrNothing = getLocalStorage('chastity_is_double_or_nothing');
     
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
@@ -301,7 +322,7 @@ function winGame() {
         const endTime = Date.now();
         ui.updateTimerDisplay(endTime - state.currentTimer.startTime);
         ui.showFinishedState(state.currentTimer.unlockMethod, state.currentTimer.unlockData, state.currentTimer.isKeyholderMode);
-        ui.showModal("Success!", "You have earned your release.", false, () => {
+        ui.showModal("Success!", "You have earned your release. You also gained 5 Edge Points.", false, () => {
             ui.switchScreen('timer-screen');
         });
     }
@@ -309,6 +330,7 @@ function winGame() {
 
 function loseGame() {
     sounds.playSound('lose');
+    updateEdgePoints(-15); // Deduct 15 EP for losing a game
     localStorage.removeItem(STORAGE_KEY.GAME_STATE);
     localStorage.removeItem('chastity_selected_game');
     let penalty;
@@ -324,7 +346,7 @@ function loseGame() {
         const days = Math.floor(penalty / (1000 * 60 * 60 * 24));
         const hours = Math.floor((penalty % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((penalty % (1000 * 60 * 60)) / (1000 * 60));
-        penaltyMessage = `You failed Sudden Death! A massive penalty of ${days}d ${hours}h ${minutes}m has been applied.`;
+        penaltyMessage = `You failed Sudden Death! A massive penalty of ${days}d ${hours}h ${minutes}m has been applied. You have also lost 15 Edge Points.`;
         
         const penaltyExpiry = Date.now() + penalty;
         setLocalStorage('chastity_doubled_penalty', { expiry: penaltyExpiry });
@@ -335,7 +357,7 @@ function loseGame() {
         if (activeEvent?.effect === 'halfPenalty' && Date.now() < activeEvent.expiry) {
             penalty /= 2;
         }
-        penaltyMessage = `A penalty of ${penalty / 60000} minutes has been applied.`;
+        penaltyMessage = `A penalty of ${penalty / 60000} minutes has been applied. You have also lost 15 Edge Points.`;
         
         const penaltyEndTime = Date.now() + penalty;
         setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
@@ -375,8 +397,18 @@ function endSession(force = false) {
     if (!force) {
         const endTime = Date.now();
         const duration = endTime - state.currentTimer.startTime;
+        
+        // Award EP for duration
+        const hoursLocked = duration / (1000 * 60 * 60);
+        const pointsEarned = Math.floor(hoursLocked / 24) * 10;
+        if (pointsEarned > 0) {
+            updateEdgePoints(pointsEarned);
+            ui.showModal("Session Complete", `You have earned ${pointsEarned} EP for your endurance.`);
+        }
+
         if (duration >= 7 * 24 * 60 * 60 * 1000) grantAchievement('lock7d');
         else if (duration >= 24 * 60 * 60 * 1000) grantAchievement('lock24h');
+        
         const totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0;
         const historyItem = {
             startTime: state.currentTimer.startTime,
@@ -408,7 +440,7 @@ function endSession(force = false) {
 }
 
 function resetApp() {
-    ui.showModal( "Reset All Data?", "This will permanently delete all timer and history data. This cannot be undone.", true, () => {
+    ui.showModal( "Reset All Data?", "This will permanently delete all timer and history data, including your Edge Points. This cannot be undone.", true, () => {
         localStorage.clear();
         loadState();
         initializeApp();
@@ -503,6 +535,39 @@ function setupEventListeners() {
         setLocalStorage(STORAGE_KEY.PENDING_PHOTO, photoData);
         ui.showModal("Photo Captured", "The photo has been saved. You may now start your session.");
         ui.renderUIForNoTimer(state.pendingPin, state.pendingPhoto);
+    });
+
+    // --- NEW: Edge spending event listeners ---
+    document.getElementById('edge-option-nudge').addEventListener('click', (e) => {
+        const cost = parseInt(e.target.dataset.cost, 10);
+        updateEdgePoints(-cost);
+        ui.hideEdgeOptions();
+
+        // Find and remove the worst penalty
+        const outcomes = [...WHEEL_OUTCOMES];
+        let worstPenaltyIndex = -1;
+        let maxDuration = 0;
+        outcomes.forEach((o, i) => {
+            if (o.type === 'penalty' && o.duration > maxDuration) {
+                maxDuration = o.duration;
+                worstPenaltyIndex = i;
+            }
+        });
+        if (worstPenaltyIndex > -1) {
+            outcomes.splice(worstPenaltyIndex, 1);
+        }
+        initWheel(handleWheelResult, outcomes);
+        ui.showModal("Edge Used!", `You spent ${cost} EP to remove the worst penalty from the wheel.`);
+    });
+    
+    document.getElementById('edge-option-calibrate').addEventListener('click', (e) => {
+        const cost = parseInt(e.target.dataset.cost, 10);
+        updateEdgePoints(-cost);
+        ui.hideEdgeOptions();
+        
+        const outcomes = WHEEL_OUTCOMES.filter(o => o.type === 'safe' || o.type === 'double');
+        initWheel(handleWheelResult, outcomes);
+        ui.showModal("Edge Used!", `You spent ${cost} EP to remove all time penalties from the wheel.`);
     });
     
     ui.setupNotesModal(saveComment);
