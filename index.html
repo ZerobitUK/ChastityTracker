@@ -20,6 +20,17 @@
         </div>
     </div>
 
+    <div id="notes-modal-container" class="modal-container">
+        <div class="modal">
+            <h2>Edit Session Notes</h2>
+            <textarea id="notes-modal-textarea"></textarea>
+            <div id="modal-actions">
+                <button id="notes-modal-save-btn">Save</button>
+                <button id="notes-modal-close-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <div id="achievement-toast" class="achievement-toast">
         <h3>🏆 Achievement Unlocked!</h3>
         <p id="achievement-name"></p>
@@ -29,6 +40,8 @@
     <div class="quote-banner" id="quote-banner"></div>
 
     <div class="container" id="main-content">
+        <button id="sound-toggle-btn" class="sound-toggle">🔊</button>
+        
         <div id="timer-screen" class="screen active">
             <h1>Session Duration</h1>
             <div id="timer">00d : 00h : 00m : 00s</div>
@@ -53,6 +66,10 @@
                     <label for="maxDurationInput">Maximum Session Duration (in hours):</label>
                     <input type="number" id="maxDurationInput" placeholder="Optional safeguard" min="1" style="width: 150px; padding: 5px;">
                 </div>
+                <div style="margin-top: 0.5rem;">
+                    <input type="checkbox" id="keyholder-mode-checkbox">
+                    <label for="keyholder-mode-checkbox">Keyholder Mode (Hides PIN on completion)</label>
+                </div>
             </div>
 
             <div class="actions">
@@ -64,7 +81,9 @@
             
             <div class="pin-display-area" id="pin-display">
                 <h2>Your Unlock Combination</h2>
-                <div class="pin-code" id="pin-code"></div>
+                <div class="pin-code" id="pin-code">************</div>
+                <button id="reveal-pin-btn" style="margin-top: 10px;">Reveal</button>
+                <button id="keyholder-email-btn" style="margin-top: 10px; display: none;">Send PIN to Keyholder</button>
             </div>
 
             <div id="practice-games-panel" style="margin-top: 2rem; border-top: 1px solid #444; padding-top: 1rem;">
@@ -75,6 +94,7 @@
                     <button data-game="tictactoe" style="background-color: #555; color: #fff;">Tic-Tac-Toe</button>
                     <button data-game="guessthenumber" style="background-color: #555; color: #fff;">Guess the Number</button>
                     <button data-game="simonsays" style="background-color: #555; color: #fff;">Simon Says</button>
+                    <button data-game="minefield" style="background-color: #555; color: #fff;">Minefield</button>
                 </div>
             </div>
 
@@ -104,8 +124,8 @@
             <div class="turns-counter" id="turns-counter" style="display: none;">Turns left: <span id="turns-left"></span></div>
 
             <div id="memory-game-container" class="memory-game-board game-container" style="display: none;"></div>
-            
             <div id="tictactoe-game-container" class="tictactoe-board game-container" style="display: none;"></div>
+            <div id="minefield-grid" class="minefield-grid game-container" style="display:none;"></div>
 
             <div id="guessthenumber-game-container" class="game-container" style="display: none;">
                 <div id="guess-timer" class="guess-timer"></div>
@@ -126,6 +146,11 @@
             <button id="back-to-selection-btn" style="margin-top: 1.5rem; background-color: #555; color: #e0e0e0;">Back to Main Screen</button>
         </div>
     </div>
+
+    <audio id="sound-win" src="sounds/win.mp3"></audio>
+    <audio id="sound-lose" src="sounds/lose.mp3"></audio>
+    <audio id="sound-spin" src="sounds/spin.mp3"></audio>
+    <audio id="sound-flip" src="sounds/flip.mp3"></audio>
 
     <script src="js/main.js" type="module"></script>
 </body>
