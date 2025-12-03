@@ -314,3 +314,33 @@ button.danger {
 .achievement-toast.show {
     bottom: 20px;
 }
+
+/* ... Previous CSS ... */
+
+/* Responsive Game Boards */
+.tictactoe-board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    width: 100%;
+    max-width: 300px; /* Fluid width */
+    aspect-ratio: 1 / 1; /* Keep square */
+    margin: 20px auto;
+}
+
+.simonsays-board {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 20px;
+    width: 100%;
+    max-width: 300px;
+    aspect-ratio: 1 / 1;
+    margin: 20px auto;
+}
+
+/* Ensure font sizes scale in games */
+.tictactoe-cell {
+    /* ... existing ... */
+    font-size: clamp(2rem, 10vw, 3rem);
+}
