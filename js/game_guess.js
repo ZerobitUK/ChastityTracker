@@ -1,4 +1,5 @@
 import { STORAGE_KEY } from './constants.js';
+import { db } from './db.js'; // FIX: Imported DB
 
 let secretNumber, attempts;
 const MAX_ATTEMPTS = 5;
@@ -115,5 +116,6 @@ function handleEnterKey(event) {
 }
 
 function setGameState(newState) {
-    localStorage.setItem(STORAGE_KEY.GAME_STATE, JSON.stringify(newState));
+    // FIX: Replaced localStorage with db.set
+    db.set(STORAGE_KEY.GAME_STATE, newState);
 }
