@@ -6,32 +6,191 @@
     <title>Chastity Tracker</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="wheel.css">
-    <link rel="manifest" href="manifest.json"> <meta name="theme-color" content="#121212">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#121212">
     <link rel="icon" href="favicon.ico" type="image/x-icon">
 </head>
 <body>
-    <div class="container" id="main-content">
-        <div class="history-list">
-            <h2>Past Sessions</h2>
-            <div id="history-container"></div>
-            
-            <div style="margin-top: 2rem; border-top: 1px solid #444; padding-top: 1rem;">
-                <h3>Data Management</h3>
-                <div style="display: flex; gap: 1rem; justify-content: center;">
-                    <button id="export-data-btn" style="background-color: #333;">Export Backup</button>
-                    <label class="custom-file-upload" style="background-color: #333; padding: 0.75rem 1.5rem; border-radius: 5px; cursor: pointer; font-weight: bold; color: var(--text-color);">
-                        <input type="file" id="import-file-input" style="display: none;">
-                        Import Backup
-                    </label>
-                </div>
+    <div id="modal-container" class="modal-container">
+        <div class="modal">
+            <h2 id="modal-title"></h2>
+            <p id="modal-message"></p>
+            <div id="modal-actions">
+                <button id="modal-confirm-btn">Confirm</button>
+                <button id="modal-close-btn">Close</button>
             </div>
         </div>
+    </div>
 
-        <div style="margin-top: 2rem;">
-            <button class="danger" id="reset-app-button">Reset All Data</button>
+    <div id="notes-modal-container" class="modal-container">
+        <div class="modal">
+            <h2>Edit Session Notes</h2>
+            <textarea id="notes-modal-textarea"></textarea>
+            <div id="modal-actions">
+                <button id="notes-modal-save-btn">Save</button>
+                <button id="notes-modal-close-btn">Cancel</button>
+            </div>
         </div>
     </div>
-    
+
+    <div id="achievement-toast" class="achievement-toast">
+        <h3>🏆 Achievement Unlocked!</h3>
+        <p id="achievement-name"></p>
+        <small id="achievement-desc"></small>
+    </div>
+
+    <div class="quote-banner" id="quote-banner"></div>
+
+    <div class="container" id="main-content">
+        <button id="sound-toggle-btn" class="sound-toggle">🔊</button>
+        
+        <div id="timer-screen" class="screen active">
+            <div class="edge-points-display" id="edge-points-display">Edge: 0 EP</div>
+            <h1>Session Duration</h1>
+            <div id="timer">00d : 00h : 00m : 00s</div>
+            <div id="timer-message"></div>
+            <div id="lockdown-timer" class="lockdown-timer"></div>
+            <div id="doubled-penalty-timer" class="lockdown-timer"></div>
+            <div class="date-info">
+                <p>Lock-up Initiated: <span id="startDate">N/A</span></p>
+            </div>
+            
+            <div class="timer-type-selector" id="timer-options">
+                <p>Choose your lock-up duration type:</p>
+                <div>
+                    <input type="radio" id="normalTimer" name="timerType" value="normal" checked>
+                    <label for="normalTimer">Normal Counter</label>
+                </div>
+                <div>
+                    <input type="radio" id="randomTimer" name="timerType" value="random">
+                    <label for="randomTimer">Random Minimum Time</label>
+                </div>
+
+                <div style="margin-top: 1.5rem;">
+                    <p>Choose your unlock method:</p>
+                    <div>
+                        <input type="radio" id="unlock-method-pin" name="unlockMethod" value="pin" checked>
+                        <label for="unlock-method-pin">Generate PIN</label>
+                    </div>
+                    <div>
+                        <input type="radio" id="unlock-method-photo" name="unlockMethod" value="photo">
+                        <label for="unlock-method-photo">Take Photo of Lock</label>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <label for="maxDurationInput">Maximum Session Duration (in hours):</label>
+                    <input type="number" id="maxDurationInput" placeholder="Optional safeguard" min="1" style="width: 150px; padding: 5px;">
+                </div>
+                <div style="margin-top: 0.5rem;">
+                    <input type="checkbox" id="keyholder-mode-checkbox">
+                    <label for="keyholder-mode-checkbox">Keyholder Mode (Hides PIN on completion)</label>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="start" id="start-button">Initiate Session</button>
+                <button class="start-locktober" id="start-locktober-button">Start Locktober</button>
+                <button class="request-unlock" id="unlock-button" style="display:none;">Request Release</button>
+                <button class="reset" id="reset-button" style="display:none;">End Session</button>
+            </div>
+            
+            <div class="pin-display-area" id="pin-display">
+                <h2>Your Unlock Combination</h2>
+                <div class="pin-code" id="pin-code">************</div>
+                <img id="photo-display" style="display:none; max-width: 100%; border-radius: 8px; margin-top: 10px;" alt="Unlock Combination"/>
+                <button id="reveal-pin-btn" style="margin-top: 10px;">Reveal</button>
+                <button id="keyholder-email-btn" style="margin-top: 10px; display: none;">Send PIN to Keyholder</button>
+            </div>
+            
+            <div id="camera-container" style="display:none; margin-top: 1rem;">
+                <video id="camera-stream" autoplay playsinline style="width: 100%; border-radius: 8px;"></video>
+                <canvas id="camera-canvas" style="display:none;"></canvas>
+                <button id="capture-photo-btn" style="margin-top: 10px;">Capture Photo</button>
+            </div>
+
+            <div id="practice-games-panel" style="margin-top: 2rem; border-top: 1px solid #444; padding-top: 1rem;">
+                <h2>Practice Games</h2>
+                <div class="actions" id="practice-game-buttons">
+                    <button data-game="memory" style="background-color: #555; color: #fff;">The Keyholder's Memory</button>
+                    <button data-game="tictactoe" style="background-color: #555; color: #fff;">Tic-Tac-Toe</button>
+                    <button data-game="guessthenumber" style="background-color: #555; color: #fff;">Guess the Number</button>
+                    <button data-game="simonsays" style="background-color: #555; color: #fff;">Simon Says</button>
+                    <button data-game="minefield" style="background-color: #555; color: #fff;">Minefield</button>
+                </div>
+            </div>
+
+            <div class="history-list">
+                <h2>Past Sessions</h2>
+                <div id="history-container">No past sessions to display.</div>
+                
+                <div style="margin-top: 2rem; border-top: 1px solid #444; padding-top: 1rem;">
+                    <h3>Data Management</h3>
+                    <div style="display: flex; gap: 1rem; justify-content: center;">
+                        <button id="export-data-btn" style="background-color: #333;">Export Backup</button>
+                        <label class="custom-file-upload" style="background-color: #333; padding: 0.75rem 1.5rem; border-radius: 5px; cursor: pointer; font-weight: bold; color: var(--text-color);">
+                            <input type="file" id="import-file-input" style="display: none;">
+                            Import Backup
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 2rem;">
+              <button class="danger" id="reset-app-button">Reset All Data</button>
+            </div>
+        </div>
+        
+        <div id="wheel-screen" class="screen">
+            <h2>Wheel of Fortune</h2>
+            <p>Spin the wheel to discover your fate.</p>
+            <div class="wheel-container">
+                <div class="wheel-pointer"></div>
+                <div id="wheel" class="wheel"></div>
+            </div>
+            <div id="edge-options-container" class="edge-options" style="margin-top: 1.5rem;">
+                <p>Use your Edge to influence the outcome:</p>
+                <button id="edge-option-nudge" data-cost="20">Nudge the Wheel (20 EP)</button>
+                <button id="edge-option-calibrate" data-cost="50">Calibrate Odds (50 EP)</button>
+            </div>
+            <button id="spin-button" style="margin-top: 1rem;">Spin the Wheel</button>
+            <button id="wheel-back-btn" style="margin-top: 1rem; background-color: #555; color: #e0e0e0; display: none;">Continue</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <h2 id="game-title"></h2>
+            <p id="game-description"></p>
+            <div class="turns-counter" id="turns-counter" style="display: none;">Turns left: <span id="turns-left"></span></div>
+
+            <div id="memory-game-container" class="memory-game-board game-container" style="display: none;"></div>
+            <div id="tictactoe-game-container" class="tictactoe-board game-container" style="display: none;"></div>
+            <div id="minefield-grid" class="minefield-grid game-container" style="display:none;"></div>
+
+            <div id="guessthenumber-game-container" class="game-container" style="display: none;">
+                <div id="guess-timer" class="guess-timer"></div>
+                <p id="guess-prompt"></p>
+                <p id="guess-message"></p>
+                <input type="number" id="guess-input" placeholder="Enter your guess">
+                <button id="guess-submit-btn">Submit Guess</button>
+            </div>
+
+            <div id="simonsays-game-container" class="simonsays-board game-container" style="display:none;">
+                <div class="simon-button" data-color="red"></div>
+                <div class="simon-button" data-color="green"></div>
+                <div class="simon-button" data-color="blue"></div>
+                <div class="simon-button" data-color="yellow"></div>
+            </div>
+            <p id="simon-status" style="display:none;"></p>
+            
+            <button id="back-to-selection-btn" style="margin-top: 1.5rem; background-color: #555; color: #e0e0e0;">Back to Main Screen</button>
+        </div>
+    </div>
+
+    <audio id="sound-win" src="sounds/win.mp3"></audio>
+    <audio id="sound-lose" src="sounds/lose.mp3"></audio>
+    <audio id="sound-spin" src="sounds/spin.mp3"></audio>
+    <audio id="sound-flip" src="sounds/flip.mp3"></audio>
+
     <script src="js/main.js" type="module"></script>
 </body>
 </html>
