@@ -30,10 +30,10 @@ const elements = {
     notesModalCloseBtn: document.getElementById('notes-modal-close-btn'),
     revealPinBtn: document.getElementById('reveal-pin-btn'),
     keyholderEmailBtn: document.getElementById('keyholder-email-btn'),
-    edgePointsDisplay: document.getElementById('edge-points-display'), // <-- NEW
-    edgeOptionsContainer: document.getElementById('edge-options-container'), // <-- NEW
-    edgeOptionNudge: document.getElementById('edge-option-nudge'), // <-- NEW
-    edgeOptionCalibrate: document.getElementById('edge-option-calibrate'), // <-- NEW
+    edgePointsDisplay: document.getElementById('edge-points-display'),
+    edgeOptionsContainer: document.getElementById('edge-options-container'),
+    edgeOptionNudge: document.getElementById('edge-option-nudge'),
+    edgeOptionCalibrate: document.getElementById('edge-option-calibrate'),
 };
 
 let confirmCallback = null;
@@ -192,7 +192,8 @@ export function toggleUnlockButton(visible) {
     elements.unlockButton.style.display = visible ? 'block' : 'none';
 }
 
-export function renderHistory(history, saveCommentCallback, showNotesModalCallback) {
+// FIX: Added deleteHistoryItemCallback to arguments
+export function renderHistory(history, saveCommentCallback, showNotesModalCallback, deleteHistoryItemCallback) {
     elements.historyContainer.innerHTML = '';
     if (history.length === 0) {
         elements.historyContainer.textContent = 'No past sessions to display.';
