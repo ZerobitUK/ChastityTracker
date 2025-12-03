@@ -38,27 +38,23 @@ const elements = {
 
 let confirmCallback = null;
 let cancelCallback = null;
-
 let currentNotesIndex = null;
 let saveNotesCallback = null;
 
+if (elements.modalCloseBtn) {
+    elements.modalCloseBtn.addEventListener('click', () => {
+        if (typeof cancelCallback === 'function') cancelCallback();
+        else if (elements.modalConfirmBtn.style.display === 'none' && typeof confirmCallback === 'function') confirmCallback();
+        closeModal();
+    });
+}
 
-elements.modalCloseBtn.addEventListener('click', () => {
-    if (typeof cancelCallback === 'function') {
-        cancelCallback();
-    }
-    else if (elements.modalConfirmBtn.style.display === 'none' && typeof confirmCallback === 'function') {
-        confirmCallback();
-    }
-    closeModal();
-});
-
-elements.modalConfirmBtn.addEventListener('click', () => {
-    if (typeof confirmCallback === 'function') {
-        confirmCallback();
-    }
-    closeModal();
-});
+if (elements.modalConfirmBtn) {
+    elements.modalConfirmBtn.addEventListener('click', () => {
+        if (typeof confirmCallback === 'function') confirmCallback();
+        closeModal();
+    });
+}
 
 function closeModal() {
     elements.modalContainer.classList.remove('visible');
@@ -66,17 +62,17 @@ function closeModal() {
     cancelCallback = null;
 }
 
-// --- Notes Modal Logic ---
-
 export function setupNotesModal(saveCallback) {
     saveNotesCallback = saveCallback;
-    elements.notesModalSaveBtn.addEventListener('click', () => {
-        if (currentNotesIndex !== null) {
-            saveNotesCallback(currentNotesIndex, elements.notesModalTextarea.value);
-        }
-        closeNotesModal();
-    });
-    elements.notesModalCloseBtn.addEventListener('click', closeNotesModal);
+    if (elements.notesModalSaveBtn) {
+        elements.notesModalSaveBtn.addEventListener('click', () => {
+            if (currentNotesIndex !== null) saveNotesCallback(currentNotesIndex, elements.notesModalTextarea.value);
+            closeNotesModal();
+        });
+    }
+    if (elements.notesModalCloseBtn) {
+        elements.notesModalCloseBtn.addEventListener('click', closeNotesModal);
+    }
 }
 
 export function showNotesModal(index, currentText) {
@@ -89,7 +85,6 @@ function closeNotesModal() {
     elements.notesModalContainer.classList.remove('visible');
     currentNotesIndex = null;
 }
-
 
 export function showModal(title, message, showConfirm = false, onConfirm = null, onCancel = null) {
     elements.modalTitle.textContent = title;
@@ -115,16 +110,14 @@ export function updateTimerDisplay(durationMs) {
     elements.timer.textContent = `${String(days).padStart(2, '0')}d : ${String(hours).padStart(2, '0')}h : ${String(minutes).padStart(2, '0')}m : ${String(seconds).padStart(2, '0')}s`;
 }
 
-// --- NEW: Edge Points UI ---
 export function updateEdgePointsDisplay(points) {
-    elements.edgePointsDisplay.textContent = `Edge: ${points} EP`;
+    if(elements.edgePointsDisplay) elements.edgePointsDisplay.textContent = `Edge: ${points} EP`;
 }
 
 export function updateEdgeOptions(currentPoints) {
     elements.edgeOptionsContainer.style.display = 'block';
     const nudgeCost = parseInt(elements.edgeOptionNudge.dataset.cost, 10);
     const calibrateCost = parseInt(elements.edgeOptionCalibrate.dataset.cost, 10);
-
     elements.edgeOptionNudge.disabled = currentPoints < nudgeCost;
     elements.edgeOptionCalibrate.disabled = currentPoints < calibrateCost;
 }
@@ -133,12 +126,10 @@ export function hideEdgeOptions() {
     elements.edgeOptionsContainer.style.display = 'none';
 }
 
-
 export function renderUIForActiveTimer(startTime) {
     elements.timerOptions.style.display = 'none';
     elements.practiceGamesPanel.style.display = 'none';
     document.getElementById('camera-container').style.display = 'none';
-
     elements.startDate.textContent = new Date(startTime).toLocaleString();
     elements.startButton.style.display = 'none';
     elements.startLocktoberButton.style.display = 'none';
@@ -150,7 +141,6 @@ export function renderUIForActiveTimer(startTime) {
 export function renderUIForNoTimer(pendingPin, pendingPhoto) {
     elements.timerOptions.style.display = 'block';
     elements.practiceGamesPanel.style.display = 'block';
-
     elements.timer.textContent = '00d : 00h : 00m : 00s';
     elements.startDate.textContent = 'N/A';
     elements.startButton.style.display = 'block';
@@ -159,7 +149,6 @@ export function renderUIForNoTimer(pendingPin, pendingPhoto) {
     elements.resetButton.style.display = 'none';
     elements.timerMessage.textContent = '';
     elements.pinDisplay.style.display = 'block';
-
     if (pendingPhoto) {
         elements.photoDisplay.src = pendingPhoto;
         elements.photoDisplay.style.display = 'block';
@@ -173,11 +162,8 @@ export function renderUIForNoTimer(pendingPin, pendingPhoto) {
 
 export function updateTimerMessage(message = '', isPenalty = false) {
     elements.timerMessage.textContent = message;
-    if (isPenalty) {
-        elements.timerMessage.classList.add('penalty-message');
-    } else {
-        elements.timerMessage.classList.remove('penalty-message');
-    }
+    if (isPenalty) elements.timerMessage.classList.add('penalty-message');
+    else elements.timerMessage.classList.remove('penalty-message');
 }
 
 export function updateLockdownTimer(message = '') {
@@ -273,19 +259,18 @@ export function showFinishedState(unlockMethod, unlockData, isKeyholderMode) {
     elements.unlockButton.style.display = 'none';
     elements.resetButton.style.display = 'block';
     elements.pinDisplay.style.display = 'block';
-    
     elements.photoDisplay.style.display = 'none';
     elements.pinCode.style.display = 'none';
 
     if (unlockMethod === 'photo') {
         elements.photoDisplay.src = unlockData;
         elements.photoDisplay.style.display = 'block';
-        elements.revealPinBtn.style.display = 'none';
-        elements.keyholderEmailBtn.style.display = 'none';
+        if(elements.revealPinBtn) elements.revealPinBtn.style.display = 'none';
+        if(elements.keyholderEmailBtn) elements.keyholderEmailBtn.style.display = 'none';
     } else { // PIN method
         elements.pinCode.style.display = 'block';
-        elements.revealPinBtn.style.display = isKeyholderMode ? 'none' : 'inline-block';
-        elements.keyholderEmailBtn.style.display = isKeyholderMode ? 'inline-block' : 'none';
+        if(elements.revealPinBtn) elements.revealPinBtn.style.display = isKeyholderMode ? 'none' : 'inline-block';
+        if(elements.keyholderEmailBtn) elements.keyholderEmailBtn.style.display = isKeyholderMode ? 'inline-block' : 'none';
         elements.pinCode.textContent = '************';
 
         const revealHandler = () => {
@@ -303,16 +288,17 @@ export function showFinishedState(unlockMethod, unlockData, isKeyholderMode) {
         };
         elements.keyholderEmailBtn.addEventListener('click', emailHandler);
     }
-
     updateTimerMessage('Congratulations. You may now end your session.');
 }
 
 export function showAchievement(achievement) {
     const toast = document.getElementById('achievement-toast');
-    document.getElementById('achievement-name').textContent = achievement.name;
-    document.getElementById('achievement-desc').textContent = achievement.description;
-    toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 5000);
+    if(toast) {
+        document.getElementById('achievement-name').textContent = achievement.name;
+        document.getElementById('achievement-desc').textContent = achievement.description;
+        toast.classList.add('show');
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 5000);
+    }
 }
