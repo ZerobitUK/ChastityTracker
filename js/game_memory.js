@@ -1,27 +1,18 @@
+import { db } from './db.js';
 import { STORAGE_KEY } from './constants.js';
 
 const CARDS = ['🔑', '🔒', '❤️', '🔥', '💦', '⌛', '🍆', '⛓️', '😈', '🤞'];
-const MAX_TURNS = 14; // Adjusted for the increased number of cards
+const MAX_TURNS = 14;
 
 let firstCard, secondCard;
 let lockBoard = false;
 let onWin, onLose;
-
-let state = {
-    deck: [],
-    turnsTaken: 0,
-    matchedPairs: 0,
-};
-
+let state = { deck: [], turnsTaken: 0, matchedPairs: 0 };
 const gameContainer = document.getElementById('memory-game-container');
 const turnsLeftEl = document.getElementById('turns-left');
 
-function setGameState(newState) {
-    try {
-        localStorage.setItem(STORAGE_KEY.GAME_STATE, JSON.stringify(newState));
-    } catch (e) {
-        console.error("Failed to save game state to localStorage", e);
-    }
+async function saveState() {
+    await db.set(STORAGE_KEY.GAME_STATE, state);
 }
 
 function handleCardClick(event) {
@@ -37,12 +28,14 @@ function handleCardClick(event) {
     if (!firstCard) {
         firstCard = clickedCard;
     } else {
+        // IMMEDIATE LOCK
+        lockBoard = true;
         secondCard = clickedCard;
         state.turnsTaken++;
         turnsLeftEl.textContent = MAX_TURNS - state.turnsTaken;
         checkForMatch();
     }
-    setGameState(state);
+    saveState();
 }
 
 function checkForMatch() {
@@ -52,21 +45,22 @@ function checkForMatch() {
 }
 
 function disableCards() {
+    state.deck[firstCard.dataset.index].isMatched = true;
+    state.deck[secondCard.dataset.index].isMatched = true;
     state.matchedPairs++;
     resetBoard();
 }
 
 function unflipCards() {
-    lockBoard = true;
     setTimeout(() => {
-        const firstIndex = firstCard.dataset.index;
-        const secondIndex = secondCard.dataset.index;
-        state.deck[firstIndex].isFlipped = false;
-        state.deck[secondIndex].isFlipped = false;
-        firstCard.classList.remove('is-flipped');
-        secondCard.classList.remove('is-flipped');
+        if(firstCard && secondCard) {
+            state.deck[firstCard.dataset.index].isFlipped = false;
+            state.deck[secondCard.dataset.index].isFlipped = false;
+            firstCard.classList.remove('is-flipped');
+            secondCard.classList.remove('is-flipped');
+        }
         resetBoard();
-        setGameState(state);
+        saveState();
     }, 1500);
 }
 
@@ -75,32 +69,25 @@ function resetBoard() {
 }
 
 function checkGameEnd() {
-    if (state.matchedPairs === CARDS.length) {
-        onWin();
-        return;
-    }
-    if (state.turnsTaken >= MAX_TURNS) {
-        onLose();
-    }
+    if (state.matchedPairs === CARDS.length) onWin();
+    else if (state.turnsTaken >= MAX_TURNS) onLose();
 }
+
+// ... renderBoard function (same as original) ...
 
 function renderBoard() {
     gameContainer.innerHTML = '';
     state.deck.forEach((cardState, index) => {
         const card = document.createElement('div');
         card.classList.add('card');
-        if (cardState.isFlipped) {
-            card.classList.add('is-flipped');
-        }
+        if (cardState.isFlipped) card.classList.add('is-flipped');
         card.dataset.value = cardState.value;
         card.dataset.index = index;
         card.innerHTML = `
             <div class="card-face card-front">?</div>
             <div class="card-face card-back">${cardState.value}</div>
         `;
-        if (!cardState.isMatched) {
-             card.addEventListener('click', handleCardClick);
-        }
+        if (!cardState.isMatched) card.addEventListener('click', handleCardClick);
         gameContainer.appendChild(card);
     });
     turnsLeftEl.textContent = MAX_TURNS - state.turnsTaken;
@@ -109,25 +96,25 @@ function renderBoard() {
 export function initMemoryGame(winCallback, loseCallback, savedState) {
     onWin = winCallback;
     onLose = loseCallback;
-
+    
+    // ... UI setup (same as original) ...
     document.getElementById('game-title').textContent = "The Keyholder's Memory";
-    document.getElementById('game-description').textContent = "Match all pairs before you run out of turns.";
+    document.getElementById('game-description').textContent = "Match all pairs.";
     document.getElementById('turns-counter').style.display = 'block';
     gameContainer.style.display = 'grid';
 
-    firstCard = null;
-    secondCard = null;
-    lockBoard = false;
+    firstCard = null; secondCard = null; lockBoard = false;
 
     if (savedState && savedState.deck) {
         state = savedState;
     } else {
-        state.deck = [...CARDS, ...CARDS]
-            .sort(() => 0.5 - Math.random())
-            .map(value => ({ value, isFlipped: false, isMatched: false }));
-        state.turnsTaken = 0;
-        state.matchedPairs = 0;
-        setGameState(state);
+        state = {
+            deck: [...CARDS, ...CARDS].sort(() => 0.5 - Math.random())
+                .map(value => ({ value, isFlipped: false, isMatched: false })),
+            turnsTaken: 0,
+            matchedPairs: 0
+        };
+        saveState();
     }
     renderBoard();
 }
