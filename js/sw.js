@@ -1,4 +1,4 @@
-const CACHE_NAME = 'chastity-tracker-v1';
+const CACHE_NAME = 'chastity-tracker-v2'; // INCREMENTED VERSION
 const ASSETS = [
   './',
   './index.html',
@@ -27,6 +27,20 @@ self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
+  self.skipWaiting(); // Force new service worker to activate
+});
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches.keys().then((keyList) => {
+      return Promise.all(keyList.map((key) => {
+        if (key !== CACHE_NAME) {
+          return caches.delete(key);
+        }
+      }));
+    })
+  );
+  return self.clients.claim(); // Take control immediately
 });
 
 self.addEventListener('fetch', (e) => {
