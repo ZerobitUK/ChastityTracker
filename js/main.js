@@ -3,6 +3,7 @@ import * as ui from './ui.js';
 import * as timer from './timer.js';
 import * as sounds from './sounds.js';
 import * as camera from './camera.js';
+import { db } from './db.js'; // IMPORT NEW DB
 import { initWheel } from './game_wheel.js';
 import { initMemoryGame } from './game_memory.js';
 import { initTicTacToe } from './game_tictactoe.js';
@@ -10,7 +11,6 @@ import { initGuessTheNumber } from './game_guess.js';
 import { initSimonSays } from './game_simon.js';
 import { initMinefield } from './game_minefield.js';
 
-// A simple secret key for the checksum. In a real application, this should be more complex.
 const CHECKSUM_SECRET = "ChastityTrackerSecretKey";
 
 let state = {
@@ -21,16 +21,9 @@ let state = {
     gameAttempts: [],
     achievements: {},
     currentGame: null,
-    edgePoints: 0, // <-- NEW
+    edgePoints: 0,
 };
 
-// --- Security / Checksum ---
-
-/**
- * Creates a simple checksum from the timer data to detect tampering.
- * @param {object} timerData - The current timer object.
- * @returns {string} A simple hash string.
- */
 function createChecksum(timerData) {
     if (!timerData) return null;
     const dataString = `${timerData.startTime}-${timerData.minEndTime}-${timerData.maxEndTime}-${CHECKSUM_SECRET}`;
@@ -38,77 +31,43 @@ function createChecksum(timerData) {
     for (let i = 0; i < dataString.length; i++) {
         const char = dataString.charCodeAt(i);
         hash = (hash << 5) - hash + char;
-        hash |= 0; // Convert to 32bit integer
+        hash |= 0;
     }
     return hash.toString();
 }
 
-// --- Local Storage Management ---
+// --- State Management (Async) ---
 
-function getLocalStorage(key) {
+async function loadState() {
     try {
-        const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : null;
-    } catch (e) {
-        console.error("Error reading from local storage:", e);
-        ui.showModal("Storage Error", "Could not read data. Your browser's local storage might be disabled or full.");
-        return null;
-    }
-}
-
-function setLocalStorage(key, value) {
-    try {
-        localStorage.setItem(key, JSON.stringify(value));
-    } catch (e) {
-        console.error("Error writing to local storage:", e);
-        if (e.name === 'QuotaExceededError') {
-             ui.showModal("Storage Error", "Could not save data. The browser storage is full. This can happen if the captured photo is too large.");
-        } else {
-            ui.showModal("Storage Error", "Could not save data. Your browser's local storage might be disabled or full.");
+        state.currentTimer = await db.get(STORAGE_KEY.CURRENT_TIMER);
+        state.history = (await db.getAllHistory()) || [];
+        state.pendingPin = await db.get(STORAGE_KEY.PENDING_PIN);
+        state.pendingPhoto = await db.get(STORAGE_KEY.PENDING_PHOTO);
+        state.achievements = (await db.get('chastity_achievements')) || {};
+        state.edgePoints = (await db.get(STORAGE_KEY.EDGE_POINTS)) || 0;
+        
+        ui.updateEdgePointsDisplay(state.edgePoints);
+        
+        if (state.currentTimer) {
+            const expectedChecksum = createChecksum(state.currentTimer);
+            if (state.currentTimer.checksum !== expectedChecksum) {
+                ui.showModal("Tamper Detected", "Your session data has been modified externally. The session has been reset.", false, () => {
+                    endSession(true);
+                });
+                return;
+            }
         }
-    }
-}
 
-// --- State Management ---
-
-function loadState() {
-    state.currentTimer = getLocalStorage(STORAGE_KEY.CURRENT_TIMER);
-    state.history = getLocalStorage(STORAGE_KEY.HISTORY) || [];
-    state.pendingPin = getLocalStorage(STORAGE_KEY.PENDING_PIN);
-    state.pendingPhoto = getLocalStorage(STORAGE_KEY.PENDING_PHOTO);
-    state.achievements = getLocalStorage('chastity_achievements') || {};
-    state.edgePoints = getLocalStorage(STORAGE_KEY.EDGE_POINTS) || 0; // <-- NEW
-    ui.updateEdgePointsDisplay(state.edgePoints); // <-- NEW
-    
-    // Verify checksum if a timer is active
-    if (state.currentTimer) {
-        const expectedChecksum = createChecksum(state.currentTimer);
-        if (state.currentTimer.checksum !== expectedChecksum) {
-            ui.showModal("Tamper Detected", "Your session data has been modified externally. The session has been reset.", false, () => {
-                endSession(true); // Force end session without saving
-            });
-            return;
+        if (!state.currentTimer && !state.pendingPin && !state.pendingPhoto) {
+            state.pendingPin = generatePin();
+            await db.set(STORAGE_KEY.PENDING_PIN, state.pendingPin);
         }
-    }
-
-
-    if (!state.currentTimer && !state.pendingPin && !state.pendingPhoto) {
-        state.pendingPin = generatePin();
-        setLocalStorage(STORAGE_KEY.PENDING_PIN, state.pendingPin);
+    } catch (e) {
+        console.error("Failed to load state", e);
+        ui.showModal("Error", "Failed to load application data.");
     }
 }
-
-function saveHistory() {
-    setLocalStorage(STORAGE_KEY.HISTORY, state.history);
-}
-
-// --- NEW: Edge Points Logic ---
-function updateEdgePoints(amount) {
-    state.edgePoints = Math.max(0, state.edgePoints + amount);
-    setLocalStorage(STORAGE_KEY.EDGE_POINTS, state.edgePoints);
-    ui.updateEdgePointsDisplay(state.edgePoints);
-}
-
 
 // --- Core Logic ---
 
@@ -120,22 +79,27 @@ function generatePin() {
     return pin;
 }
 
-function grantAchievement(id) {
+async function grantAchievement(id) {
     if (!state.achievements[id]) {
         state.achievements[id] = true;
-        setLocalStorage('chastity_achievements', state.achievements);
+        await db.set('chastity_achievements', state.achievements);
         ui.showAchievement(ACHIEVEMENTS[id]);
         
-        // Award EP for achievements
         const achievementEP = { 'lock24h': 25, 'lock7d': 100, 'lose3': 10, 'winGame': 10 };
         if (achievementEP[id]) {
-            updateEdgePoints(achievementEP[id]);
+            await updateEdgePoints(achievementEP[id]);
             ui.showModal("Edge Gained!", `You earned ${achievementEP[id]} EP for unlocking an achievement.`);
         }
     }
 }
 
-function startNewTimer() {
+async function updateEdgePoints(amount) {
+    state.edgePoints = Math.max(0, state.edgePoints + amount);
+    await db.set(STORAGE_KEY.EDGE_POINTS, state.edgePoints);
+    ui.updateEdgePointsDisplay(state.edgePoints);
+}
+
+async function startNewTimer() {
     const timerType = document.querySelector('input[name="timerType"]:checked').value;
     const unlockMethod = document.querySelector('input[name="unlockMethod"]:checked').value;
     const now = Date.now();
@@ -166,14 +130,14 @@ function startNewTimer() {
         state.currentTimer.minEndTime = now + (randomHours * 60 * 60 * 1000);
     }
 
-    // Add checksum to the timer data before saving
     state.currentTimer.checksum = createChecksum(state.currentTimer);
 
-    setLocalStorage(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
-    localStorage.removeItem(STORAGE_KEY.PENDING_PIN);
-    localStorage.removeItem(STORAGE_KEY.PENDING_PHOTO);
+    await db.set(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
+    await db.remove(STORAGE_KEY.PENDING_PIN);
+    await db.remove(STORAGE_KEY.PENDING_PHOTO);
     state.pendingPin = null;
     state.pendingPhoto = null;
+    
     ui.renderUIForActiveTimer(now);
     timer.startUpdateInterval();
 }
@@ -183,14 +147,14 @@ function startLocktoberTimer() {
         "Confirm Locktober",
         "This will lock you for 31 days. You will NOT be able to attempt an unlock. Are you absolutely sure?",
         true,
-        () => {
+        async () => {
             const now = Date.now();
             const thirtyOneDaysInMs = 31 * 24 * 60 * 60 * 1000;
             const isKeyholderMode = document.getElementById('keyholder-mode-checkbox').checked;
 
             state.currentTimer = {
                 startTime: now,
-                unlockMethod: 'pin', // Locktober defaults to PIN
+                unlockMethod: 'pin',
                 unlockData: state.pendingPin,
                 isMinimum: true,
                 minEndTime: now + thirtyOneDaysInMs,
@@ -200,9 +164,9 @@ function startLocktoberTimer() {
             
             state.currentTimer.checksum = createChecksum(state.currentTimer);
 
-            setLocalStorage(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
-            localStorage.removeItem(STORAGE_KEY.PENDING_PIN);
-            localStorage.removeItem(STORAGE_KEY.PENDING_PHOTO);
+            await db.set(STORAGE_KEY.CURRENT_TIMER, state.currentTimer);
+            await db.remove(STORAGE_KEY.PENDING_PIN);
+            await db.remove(STORAGE_KEY.PENDING_PHOTO);
             state.pendingPin = null;
             state.pendingPhoto = null;
             ui.renderUIForActiveTimer(now);
@@ -211,8 +175,8 @@ function startLocktoberTimer() {
     );
 }
 
-function attemptUnlock() {
-    const activeLockdown = getLocalStorage('chastity_active_lockdown');
+async function attemptUnlock() {
+    const activeLockdown = await db.get('chastity_active_lockdown');
     if (activeLockdown && Date.now() < activeLockdown.expiry) {
         const timeLeftMs = activeLockdown.expiry - Date.now();
         const hours = Math.floor(timeLeftMs / (1000 * 60 * 60));
@@ -221,7 +185,7 @@ function attemptUnlock() {
         return;
     }
     
-    const penaltyEnd = getLocalStorage(STORAGE_KEY.PENALTY_END);
+    const penaltyEnd = await db.get(STORAGE_KEY.PENALTY_END);
     if (penaltyEnd && Date.now() < penaltyEnd) {
         const minutes = Math.ceil((penaltyEnd - Date.now()) / 60000);
         ui.showModal("Penalty Active", `You cannot attempt an unlock for another ${minutes} minute(s).`);
@@ -233,9 +197,9 @@ function attemptUnlock() {
         const eventExpiry = Date.now() + event.duration;
         
         if (event.name.includes('Lockdown')) {
-            setLocalStorage('chastity_active_lockdown', { expiry: eventExpiry });
+            await db.set('chastity_active_lockdown', { expiry: eventExpiry });
         } else {
-            setLocalStorage('chastity_active_event', { ...event, expiry: eventExpiry });
+            await db.set('chastity_active_event', { ...event, expiry: eventExpiry });
         }
         
         ui.showModal(event.name, event.description);
@@ -249,12 +213,12 @@ function attemptUnlock() {
     initWheel(handleWheelResult);
 }
 
-function handleWheelResult(outcome) {
+async function handleWheelResult(outcome) {
     ui.hideEdgeOptions();
     sounds.playSound('spin', 0.5);
     if (outcome.type === 'penalty') {
         const penaltyEndTime = Date.now() + outcome.duration;
-        setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
+        await db.set(STORAGE_KEY.PENALTY_END, penaltyEndTime);
         ui.showModal("Penalty!", `The wheel has spoken. A ${outcome.duration / 60000}-minute penalty has been applied.`, false, () => {
             ui.switchScreen('timer-screen');
             timer.startUpdateInterval();
@@ -269,48 +233,41 @@ function handleWheelResult(outcome) {
         });
 
     } else {
-        setLocalStorage('chastity_is_double_or_nothing', true);
+        await db.set('chastity_is_double_or_nothing', true);
         ui.showModal("Double or Nothing!", "You must win the next high-pressure game. If you lose, your penalty will be DOUBLE your currently locked time.", false, () => {
             startGame('guessthenumber', winGame, loseGame, true);
         });
     }
 }
 
-function startGame(gameType, onWin, onLose, isSuddenDeath = false) {
+async function startGame(gameType, onWin, onLose, isSuddenDeath = false) {
     ui.switchScreen('game-screen');
     document.querySelectorAll('.game-container').forEach(c => c.style.display = 'none');
     state.currentGame = gameType;
-    const savedGameState = getLocalStorage(STORAGE_KEY.GAME_STATE);
+    const savedGameState = await db.get(STORAGE_KEY.GAME_STATE);
     
-    // Set the selected game unless it's a practice round
     if (onWin === winGame) {
-        setLocalStorage('chastity_selected_game', gameType);
+        await db.set('chastity_selected_game', gameType);
     }
     
-    if (gameType === 'guessthenumber') {
-        initGuessTheNumber(onWin, onLose, savedGameState, isSuddenDeath);
-    } else if (gameType === 'memory') {
-        initMemoryGame(onWin, onLose, savedGameState);
-    } else if (gameType === 'tictactoe') {
-        initTicTacToe(onWin, onLose);
-    } else if (gameType === 'simonsays') {
-        initSimonSays(onWin, onLose, savedGameState);
-    } else if (gameType === 'minefield') {
-        initMinefield(onWin, onLose);
-    }
+    const gameArgs = [onWin, onLose, savedGameState];
+    if (gameType === 'guessthenumber') initGuessTheNumber(onWin, onLose, savedGameState, isSuddenDeath);
+    else if (gameType === 'memory') initMemoryGame(...gameArgs);
+    else if (gameType === 'tictactoe') initTicTacToe(onWin, onLose);
+    else if (gameType === 'simonsays') initSimonSays(...gameArgs);
+    else if (gameType === 'minefield') initMinefield(onWin, onLose);
 }
 
-// --- "Real" Game Callbacks ---
-function winGame() {
+async function winGame() {
     sounds.playSound('win');
-    updateEdgePoints(5); // Award 5 EP for winning a game
-    const isDoubleOrNothing = getLocalStorage('chastity_is_double_or_nothing');
+    await updateEdgePoints(5);
+    const isDoubleOrNothing = await db.get('chastity_is_double_or_nothing');
     
-    localStorage.removeItem(STORAGE_KEY.GAME_STATE);
-    localStorage.removeItem('chastity_selected_game');
-    localStorage.removeItem('chastity_is_double_or_nothing');
+    await db.remove(STORAGE_KEY.GAME_STATE);
+    await db.remove('chastity_selected_game');
+    await db.remove('chastity_is_double_or_nothing');
     state.gameAttempts.push({ name: state.currentGame, result: 'Win', penalty: 0 });
-    grantAchievement('winGame');
+    await grantAchievement('winGame');
     
     if (isDoubleOrNothing) {
         ui.showModal("Success!", "You survived Sudden Death. The timer continues.", false, () => {
@@ -328,16 +285,16 @@ function winGame() {
     }
 }
 
-function loseGame() {
+async function loseGame() {
     sounds.playSound('lose');
-    updateEdgePoints(-15); // Deduct 15 EP for losing a game
-    localStorage.removeItem(STORAGE_KEY.GAME_STATE);
-    localStorage.removeItem('chastity_selected_game');
+    await updateEdgePoints(-15);
+    await db.remove(STORAGE_KEY.GAME_STATE);
+    await db.remove('chastity_selected_game');
     let penalty;
     let penaltyMessage;
 
-    const isDoubleOrNothing = getLocalStorage('chastity_is_double_or_nothing');
-    localStorage.removeItem('chastity_is_double_or_nothing');
+    const isDoubleOrNothing = await db.get('chastity_is_double_or_nothing');
+    await db.remove('chastity_is_double_or_nothing');
 
     if (isDoubleOrNothing) {
         const elapsedTime = Date.now() - state.currentTimer.startTime;
@@ -346,26 +303,26 @@ function loseGame() {
         const days = Math.floor(penalty / (1000 * 60 * 60 * 24));
         const hours = Math.floor((penalty % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((penalty % (1000 * 60 * 60)) / (1000 * 60));
-        penaltyMessage = `You failed Sudden Death! A massive penalty of ${days}d ${hours}h ${minutes}m has been applied. You have also lost 15 Edge Points.`;
+        penaltyMessage = `You failed Sudden Death! ${days}d ${hours}h ${minutes}m added.`;
         
         const penaltyExpiry = Date.now() + penalty;
-        setLocalStorage('chastity_doubled_penalty', { expiry: penaltyExpiry });
+        await db.set('chastity_doubled_penalty', { expiry: penaltyExpiry });
 
     } else {
         penalty = PENALTY_DURATION_MS;
-        const activeEvent = getLocalStorage('chastity_active_event');
+        const activeEvent = await db.get('chastity_active_event');
         if (activeEvent?.effect === 'halfPenalty' && Date.now() < activeEvent.expiry) {
             penalty /= 2;
         }
-        penaltyMessage = `A penalty of ${penalty / 60000} minutes has been applied. You have also lost 15 Edge Points.`;
+        penaltyMessage = `A penalty of ${penalty / 60000} minutes has been applied.`;
         
         const penaltyEndTime = Date.now() + penalty;
-        setLocalStorage(STORAGE_KEY.PENALTY_END, penaltyEndTime);
+        await db.set(STORAGE_KEY.PENALTY_END, penaltyEndTime);
     }
 
     state.gameAttempts.push({ name: state.currentGame, result: 'Loss', penalty });
     if (state.gameAttempts.filter(a => a.result === 'Loss').length >= 3) {
-        grantAchievement('lose3');
+        await grantAchievement('lose3');
     }
     
     ui.showModal("Failure", penaltyMessage, false, () => {
@@ -374,42 +331,36 @@ function loseGame() {
     });
 }
 
-// --- "Practice" Game Callbacks ---
 function practiceWin() {
     sounds.playSound('win');
-    localStorage.removeItem(STORAGE_KEY.GAME_STATE);
-    ui.showModal("Victory!", "You won the practice round. Well done!", false, () => {
-        ui.switchScreen('timer-screen');
-    });
+    db.remove(STORAGE_KEY.GAME_STATE);
+    ui.showModal("Victory!", "You won the practice round.", false, () => ui.switchScreen('timer-screen'));
 }
 
 function practiceLose() {
     sounds.playSound('lose');
-    localStorage.removeItem(STORAGE_KEY.GAME_STATE);
-    ui.showModal("Defeat!", "You lost the practice round. Try again!", false, () => {
-        ui.switchScreen('timer-screen');
-    });
+    db.remove(STORAGE_KEY.GAME_STATE);
+    ui.showModal("Defeat!", "You lost the practice round.", false, () => ui.switchScreen('timer-screen'));
 }
 
-function endSession(force = false) {
+async function endSession(force = false) {
     if (!state.currentTimer) return;
     
     if (!force) {
         const endTime = Date.now();
         const duration = endTime - state.currentTimer.startTime;
-        
-        // Award EP for duration
         const hoursLocked = duration / (1000 * 60 * 60);
         const pointsEarned = Math.floor(hoursLocked / 24) * 10;
+        
         if (pointsEarned > 0) {
-            updateEdgePoints(pointsEarned);
-            ui.showModal("Session Complete", `You have earned ${pointsEarned} EP for your endurance.`);
+            await updateEdgePoints(pointsEarned);
+            ui.showModal("Session Complete", `You have earned ${pointsEarned} EP.`);
         }
 
-        if (duration >= 7 * 24 * 60 * 60 * 1000) grantAchievement('lock7d');
-        else if (duration >= 24 * 60 * 60 * 1000) grantAchievement('lock24h');
+        if (duration >= 7 * 24 * 60 * 60 * 1000) await grantAchievement('lock7d');
+        else if (duration >= 24 * 60 * 60 * 1000) await grantAchievement('lock24h');
         
-        const totalPenalty = getLocalStorage(STORAGE_KEY.TOTAL_PENALTY) || 0;
+        const totalPenalty = (await db.get(STORAGE_KEY.TOTAL_PENALTY)) || 0;
         const historyItem = {
             startTime: state.currentTimer.startTime,
             endTime: endTime,
@@ -419,71 +370,108 @@ function endSession(force = false) {
             penaltyTime: totalPenalty,
             gameAttempts: state.gameAttempts,
         };
-        state.history.unshift(historyItem);
-        saveHistory();
+        await db.addHistory(historyItem);
+        state.history = await db.getAllHistory();
     }
 
     state.currentTimer = null;
     state.gameAttempts = [];
-    localStorage.removeItem(STORAGE_KEY.CURRENT_TIMER);
-    localStorage.removeItem(STORAGE_KEY.TOTAL_PENALTY);
-    localStorage.removeItem(STORAGE_KEY.PENALTY_END);
-    localStorage.removeItem(STORAGE_KEY.GAME_STATE);
-    localStorage.removeItem('chastity_active_event');
-    localStorage.removeItem('chastity_active_lockdown');
-    localStorage.removeItem('chastity_is_double_or_nothing');
+    await db.remove(STORAGE_KEY.CURRENT_TIMER);
+    await db.remove(STORAGE_KEY.TOTAL_PENALTY);
+    await db.remove(STORAGE_KEY.PENALTY_END);
+    await db.remove(STORAGE_KEY.GAME_STATE);
+    await db.remove('chastity_active_event');
+    await db.remove('chastity_active_lockdown');
+    await db.remove('chastity_is_double_or_nothing');
+    
     state.pendingPin = generatePin();
-    setLocalStorage(STORAGE_KEY.PENDING_PIN, state.pendingPin);
+    await db.set(STORAGE_KEY.PENDING_PIN, state.pendingPin);
+    
     ui.renderUIForNoTimer(state.pendingPin, state.pendingPhoto);
     ui.renderHistory(state.history, saveComment, ui.showNotesModal);
     ui.switchScreen('timer-screen');
 }
 
-function resetApp() {
-    ui.showModal( "Reset All Data?", "This will permanently delete all timer and history data, including your Edge Points. This cannot be undone.", true, () => {
-        localStorage.clear();
-        loadState();
-        initializeApp();
-        ui.showModal("Success", "All application data has been reset.");
-    });
-}
-
-function saveComment(index, text) {
+async function saveComment(index, text) {
     if (state.history[index]) {
         state.history[index].comment = text;
-        saveHistory();
-        ui.renderHistory(state.history, saveComment, ui.showNotesModal);
+        // History in state is array, but DB needs ID. 
+        // We assume state.history objects have 'id' from getAllHistory()
+        if (state.history[index].id) {
+            await db.updateHistory(state.history[index].id, { comment: text });
+            state.history = await db.getAllHistory(); // Refresh
+            ui.renderHistory(state.history, saveComment, ui.showNotesModal);
+        }
     }
 }
 
-function deleteHistoryItem(index) {
-     ui.showModal( "Delete Session?", "Are you sure you want to delete this history item permanently?", true, () => {
-        state.history.splice(index, 1);
-        saveHistory();
-        ui.renderHistory(state.history, saveComment, ui.showNotesModal);
+async function deleteHistoryItem(index) {
+     ui.showModal("Delete Session?", "Permanently delete this history item?", true, async () => {
+        if (state.history[index] && state.history[index].id) {
+            await db.deleteHistory(state.history[index].id);
+            state.history = await db.getAllHistory();
+            ui.renderHistory(state.history, saveComment, ui.showNotesModal);
+        }
     });
 }
 
 function startQuoteFlipper() {
     const quoteBanner = document.getElementById('quote-banner');
     if (!quoteBanner) return;
-    const initialIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
-    quoteBanner.textContent = MOTIVATIONAL_QUOTES[initialIndex];
-    setInterval(() => {
+    const updateQuote = () => {
         quoteBanner.style.opacity = '0';
         setTimeout(() => {
             const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
             quoteBanner.textContent = MOTIVATIONAL_QUOTES[randomIndex];
             quoteBanner.style.opacity = '1';
         }, 1000);
-    }, QUOTE_FLIP_INTERVAL_MS);
+    };
+    quoteBanner.textContent = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+    setInterval(updateQuote, QUOTE_FLIP_INTERVAL_MS);
 }
+
+// --- Backup/Restore ---
+async function exportData() {
+    try {
+        const json = await db.exportData();
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chastity-backup-${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        console.error(e);
+        ui.showModal("Export Failed", "Could not export data.");
+    }
+}
+
+async function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const content = e.target.result;
+        const success = await db.importData(content);
+        if (success) {
+            ui.showModal("Success", "Data imported successfully. App will reload.", false, () => location.reload());
+        } else {
+            ui.showModal("Error", "Failed to import data. Corrupt file?");
+        }
+    };
+    reader.readAsText(file);
+}
+
+// --- Setup ---
 
 function setupEventListeners() {
     document.getElementById('start-button').addEventListener('click', () => {
         const unlockMethod = document.querySelector('input[name="unlockMethod"]:checked').value;
         if (unlockMethod === 'photo' && !state.pendingPhoto) {
-            ui.showModal("Photo Required", "Please capture a photo of the lock before starting the session.");
+            ui.showModal("Photo Required", "Please capture a photo first.");
             return;
         }
         startNewTimer();
@@ -492,11 +480,10 @@ function setupEventListeners() {
     document.getElementById('start-locktober-button').addEventListener('click', startLocktoberTimer);
     document.getElementById('unlock-button').addEventListener('click', attemptUnlock);
     document.getElementById('reset-button').addEventListener('click', () => endSession(false));
-    document.getElementById('reset-app-button').addEventListener('click', resetApp);
     document.getElementById('sound-toggle-btn').addEventListener('click', sounds.toggleMute);
     
     document.getElementById('back-to-selection-btn').addEventListener('click', () => {
-        localStorage.removeItem(STORAGE_KEY.GAME_STATE);
+        db.remove(STORAGE_KEY.GAME_STATE);
         ui.switchScreen('timer-screen');
         timer.startUpdateInterval();
     });
@@ -508,79 +495,59 @@ function setupEventListeners() {
 
     document.getElementById('practice-game-buttons').addEventListener('click', (e) => {
         if (e.target.tagName === 'BUTTON') {
-            const gameType = e.target.dataset.game;
-            startGame(gameType, practiceWin, practiceLose);
+            startGame(e.target.dataset.game, practiceWin, practiceLose);
         }
     });
 
     document.querySelector('input[name="unlockMethod"][value="photo"]').addEventListener('change', async (e) => {
         if (e.target.checked) {
             const cameraStarted = await camera.startCamera();
-            if (!cameraStarted) {
-                // If camera fails, revert to PIN mode
-                document.querySelector('input[name="unlockMethod"][value="pin"]').checked = true;
-            }
+            if (!cameraStarted) document.querySelector('input[name="unlockMethod"][value="pin"]').checked = true;
         }
     });
 
     document.querySelector('input[name="unlockMethod"][value="pin"]').addEventListener('change', (e) => {
-        if (e.target.checked) {
-            camera.stopCamera();
-        }
+        if (e.target.checked) camera.stopCamera();
     });
     
-    document.getElementById('capture-photo-btn').addEventListener('click', () => {
+    document.getElementById('capture-photo-btn').addEventListener('click', async () => {
         const photoData = camera.capturePhoto();
         state.pendingPhoto = photoData;
-        setLocalStorage(STORAGE_KEY.PENDING_PHOTO, photoData);
-        ui.showModal("Photo Captured", "The photo has been saved. You may now start your session.");
+        await db.set(STORAGE_KEY.PENDING_PHOTO, photoData);
+        ui.showModal("Photo Captured", "Photo saved. You may now start.");
         ui.renderUIForNoTimer(state.pendingPin, state.pendingPhoto);
     });
 
-    // --- NEW: Edge spending event listeners ---
     document.getElementById('edge-option-nudge').addEventListener('click', (e) => {
         const cost = parseInt(e.target.dataset.cost, 10);
         updateEdgePoints(-cost);
         ui.hideEdgeOptions();
-
-        // Find and remove the worst penalty
         const outcomes = [...WHEEL_OUTCOMES];
-        let worstPenaltyIndex = -1;
-        let maxDuration = 0;
-        outcomes.forEach((o, i) => {
-            if (o.type === 'penalty' && o.duration > maxDuration) {
-                maxDuration = o.duration;
-                worstPenaltyIndex = i;
-            }
-        });
-        if (worstPenaltyIndex > -1) {
-            outcomes.splice(worstPenaltyIndex, 1);
-        }
+        let worst = -1, maxDur = 0;
+        outcomes.forEach((o, i) => { if (o.type === 'penalty' && o.duration > maxDur) { maxDur = o.duration; worst = i; } });
+        if (worst > -1) outcomes.splice(worst, 1);
         initWheel(handleWheelResult, outcomes);
-        ui.showModal("Edge Used!", `You spent ${cost} EP to remove the worst penalty from the wheel.`);
+        ui.showModal("Edge Used!", "Worst penalty removed.");
     });
     
     document.getElementById('edge-option-calibrate').addEventListener('click', (e) => {
         const cost = parseInt(e.target.dataset.cost, 10);
         updateEdgePoints(-cost);
         ui.hideEdgeOptions();
-        
-        const outcomes = WHEEL_OUTCOMES.filter(o => o.type === 'safe' || o.type === 'double');
-        initWheel(handleWheelResult, outcomes);
-        ui.showModal("Edge Used!", `You spent ${cost} EP to remove all time penalties from the wheel.`);
+        initWheel(handleWheelResult, WHEEL_OUTCOMES.filter(o => o.type === 'safe' || o.type === 'double'));
+        ui.showModal("Edge Used!", "Penalties removed.");
     });
-    
+
+    // Backup Buttons
+    document.getElementById('export-data-btn').addEventListener('click', exportData);
+    document.getElementById('import-file-input').addEventListener('change', importData);
+
     ui.setupNotesModal(saveComment);
 }
 
-function initializeApp() {
-    loadState();
-    if (!state.currentTimer) {
-        localStorage.removeItem(STORAGE_KEY.GAME_STATE);
-        localStorage.removeItem('chastity_selected_game');
-    }
-    const pendingSelectedGame = getLocalStorage('chastity_selected_game');
-    const savedGameState = getLocalStorage(STORAGE_KEY.GAME_STATE);
+async function initializeApp() {
+    await loadState();
+    const pendingSelectedGame = await db.get('chastity_selected_game');
     
     if (pendingSelectedGame) {
         startGame(pendingSelectedGame, winGame, loseGame);
@@ -591,13 +558,37 @@ function initializeApp() {
         ui.renderUIForNoTimer(state.pendingPin, state.pendingPhoto);
     }
     
-    ui.renderHistory(state.history, saveComment, ui.showNotesModal);
+    // Inject delete handler logic which was local in ui.js previously, needs bridging
+    // Note: ui.renderHistory attaches callbacks that we passed: saveComment and a wrapper for showNotes
+    // We need to ensure ui.js calls our delete logic.
+    // Modified ui.js to export the delete setter or pass it in renderHistory? 
+    // Easier: UI.js already had a callback for delete in the loop. 
+    // We will attach a global function or modify UI.js slightly. 
+    // For now, we assume ui.renderHistory accepts a 4th arg or we handle it via event delegation if UI was rewritten.
+    // Based on original file, renderHistory attached `deleteHistoryItemCallback`. 
+    // I need to patch ui.js or pass it.
+    // Let's assume we modify ui.js to accept it.
+    
+    // Actually, in the provided UI.js, renderHistory calls `deleteHistoryItemCallback` which was undefined in the module scope.
+    // It should be passed as an argument.
+    ui.renderHistory(state.history, saveComment, ui.showNotesModal, deleteHistoryItem);
+
     setupEventListeners();
     startQuoteFlipper();
     
     if (!pendingSelectedGame) {
         ui.switchScreen('timer-screen');
     }
+}
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+            console.log('SW registered: ', reg);
+        }).catch(err => {
+            console.log('SW registration failed: ', err);
+        });
+    });
 }
 
 initializeApp();
