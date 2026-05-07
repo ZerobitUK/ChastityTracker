@@ -8,7 +8,6 @@ const TimeManager = {
     
     // High-availability endpoints for consensus
     SOURCES: [
-        { url: 'https://www.timeapi.io/api/Time/current/zone?timeZone=UTC', type: 'JSON_TIMEAPI' },
         { url: 'https://worldtimeapi.org/api/timezone/Etc/UTC', type: 'JSON_WORLDTIME' },
         { url: window.location.href, type: 'HEAD_ORIGIN' } 
     ],
