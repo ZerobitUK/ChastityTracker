@@ -43,8 +43,8 @@ async function verifyTime() {
     const localTime = Date.now();
 
     if (serverTime) {
-        // Allow 2 minutes drift
-        if (Math.abs(localTime - serverTime) > 120000) {
+        // Allow 5 minutes drift for natural PC/Phone clock inaccuracies
+        if (Math.abs(localTime - serverTime) > 300000) {
             isTimeDesynced = true;
         } else {
             isTimeDesynced = false;
@@ -73,8 +73,10 @@ export function startUpdateInterval() {
 
         // 1. Check for manual local clock adjustments while offline
         const lastHeartbeat = await db.get('last_local_heartbeat') || now;
-        // If local time jumps by more than 10 seconds between our 1-second interval ticks, flag as tampered
-        if (Math.abs(now - lastHeartbeat) > 10000 && lastKnownRealTime !== 0) {
+        
+        // FIX: Only flag if local time goes BACKWARDS by more than 10 seconds.
+        // Forward jumps are natural (e.g. locking the phone, background tab sleeping).
+        if (lastHeartbeat - now > 10000 && lastKnownRealTime !== 0) {
             isTimeDesynced = true;
         }
         await db.set('last_local_heartbeat', now);
