@@ -2,62 +2,124 @@
 <html lang="en-GB">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timed Lock Assistant</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <title>SECURE LOCK | Terminal V2.0</title>
+    
+    <!-- PWA Support -->
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="theme-cyber">
     <div id="app-container">
-        <!-- Section: Initial Setup -->
+        <!-- HEADER / STATUS BAR -->
+        <header id="status-bar">
+            <span id="connection-status" class="status-indicator">SYNCING...</span>
+            <span id="version-tag">VER 2.0.4-PREMIUM</span>
+        </header>
+
+        <!-- SECTION: INITIAL SETUP -->
         <section id="setup-screen" class="screen">
-            <h2>Initialise Lock</h2>
-            <div class="input-group">
-                <label>Set 4-Digit PIN</label>
-                <input type="password" id="pin-input" maxlength="4" placeholder="0000">
-            </div>
-            <div class="input-group">
-                <label>Maximum Random Duration (Hours)</label>
-                <input type="number" id="max-time-input" value="48">
-            </div>
-            <button id="start-lock-btn" class="primary-btn">Start Lock</button>
-        </section>
-
-        <!-- Section: Active Lock Screen -->
-        <section id="lock-screen" class="screen hidden">
-            <h2>Lock Active</h2>
-            <div class="timer-display" id="main-countdown">--:--:--</div>
-            <div class="penalty-box">
-                <p>Current Penalty Time</p>
-                <span id="penalty-timer">+00:00:00</span>
-            </div>
-            <button id="request-unlock-btn" class="primary-btn hidden">Request Unlock</button>
+            <h2 class="glitch-text">Initialise Protocol</h2>
             
-            <div class="recovery-info">
-                <p>Master Recovery Key</p>
+            <div class="input-group">
+                <label>Define 4-Digit PIN</label>
+                <input type="password" id="pin-input" maxlength="4" autocomplete="off" placeholder="****">
+            </div>
+
+            <div class="input-group">
+                <label>Max Random Duration (Hours)</label>
+                <input type="number" id="max-time-input" value="48" min="1">
+            </div>
+
+            <div class="settings-grid">
+                <div class="toggle-group">
+                    <label>Mystery Mode</label>
+                    <input type="checkbox" id="mystery-toggle" class="toggle-switch">
+                    <small>Hide countdown until ready</small>
+                </div>
+                <div class="toggle-group">
+                    <label>Difficulty Scaling</label>
+                    <input type="checkbox" id="difficulty-toggle" checked class="toggle-switch">
+                    <small>Harder games over time</small>
+                </div>
+            </div>
+
+            <button id="start-lock-btn" class="primary-btn pulse">COMMENCE LOCKDOWN</button>
+        </section>
+
+        <!-- SECTION: ACTIVE LOCK SCREEN -->
+        <section id="lock-screen" class="screen hidden">
+            <h2 id="lock-status-text">LOCKDOWN ACTIVE</h2>
+            
+            <div id="timer-wrapper">
+                <div class="timer-display" id="main-countdown">--:--:--</div>
+                <div id="mystery-overlay" class="hidden">STATUS: ENCRYPTED</div>
+            </div>
+
+            <div class="penalty-box">
+                <div class="penalty-header">
+                    <span>ACCUMULATED PENALTY</span>
+                    <span id="penalty-timer">+00:00:00</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div id="penalty-progress" class="progress-bar-fill"></div>
+                </div>
+            </div>
+
+            <button id="request-unlock-btn" class="primary-btn hidden">REQUEST DATA ACCESS</button>
+            
+            <!-- PREMIUM: STATS PANEL -->
+            <div id="stats-panel">
+                <div class="stat">
+                    <label>WIN RATE</label>
+                    <span id="stat-winrate">0%</span>
+                </div>
+                <div class="stat">
+                    <label>TOTAL SESSIONS</label>
+                    <span id="stat-sessions">0</span>
+                </div>
+            </div>
+
+            <!-- PREMIUM: UTILITY DRAWER -->
+            <div class="utility-drawer">
+                <button id="export-btn" class="icon-btn" title="Export Session Data">⎘</button>
+                <button id="notify-btn" class="icon-btn" title="Enable Notifications">🔔</button>
+                <button id="haptic-toggle" class="icon-btn" title="Toggle Haptics">📳</button>
+            </div>
+
+            <div class="recovery-section">
                 <input type="text" id="recovery-input" placeholder="RECOVER-XXXX-XXXX">
-                <button id="recovery-btn">Apply Key</button>
+                <button id="recovery-btn" class="secondary-btn">EMERGENCY BYPASS</button>
             </div>
         </section>
 
-        <!-- Section: Game Area -->
+        <!-- SECTION: CHALLENGE AREA -->
         <section id="game-screen" class="screen hidden">
-            <h2 id="game-title">Challenge</h2>
-            <div id="game-container"></div>
-            <p id="game-feedback"></p>
+            <h2 id="game-title">VERIFICATION REQUIRED</h2>
+            <div id="game-container">
+                <!-- Premium Games: Tic-Tac-Toe, Simon, Logic, or Number Guess -->
+            </div>
+            <div id="game-feedback" class="feedback-msg"></div>
         </section>
 
-        <!-- Section: Unlock Screen -->
+        <!-- SECTION: UNLOCK/PIN REVEAL -->
         <section id="unlock-screen" class="screen hidden">
-            <h2>Lock Opened</h2>
-            <div class="pin-reveal">
-                <p>Your PIN is:</p>
+            <h2 class="success-text">ACCESS GRANTED</h2>
+            <div class="pin-reveal-box">
+                <p>DECRYPTED PIN</p>
                 <h1 id="revealed-pin">----</h1>
             </div>
-            <button id="reset-app-btn" class="secondary-btn">New Session</button>
+            <button id="reset-app-btn" class="secondary-btn">TERMINATE SESSION</button>
         </section>
     </div>
 
-    <!-- Logic Modules -->
+    <!-- Audio Elements for Premium Feedback -->
+    <audio id="snd-click" preload="auto" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
+    <audio id="snd-fail" preload="auto" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
+    <audio id="snd-success" preload="auto" src="https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3"></audio>
+
+    <!-- Script Architecture -->
     <script src="js/storage.js"></script>
     <script src="js/time.js"></script>
     <script src="js/games.js"></script>
