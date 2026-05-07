@@ -14,8 +14,8 @@
     <div id="app-container">
         <!-- HEADER / STATUS BAR -->
         <header id="status-bar">
-            <span id="connection-status" class="status-indicator">SYNCING...</span>
-            <span id="version-tag">VER 2.0.4-PREMIUM</span>
+            <span id="connection-status" class="status-indicator">SYSTEM READY</span>
+            <span id="version-tag">VER 2.1.0-LOCAL</span>
         </header>
 
         <!-- SECTION: INITIAL SETUP -->
@@ -69,7 +69,7 @@
 
             <button id="request-unlock-btn" class="primary-btn hidden">REQUEST DATA ACCESS</button>
             
-            <!-- PREMIUM: STATS PANEL -->
+            <!-- STATS PANEL -->
             <div id="stats-panel">
                 <div class="stat">
                     <label>WIN RATE</label>
@@ -81,25 +81,24 @@
                 </div>
             </div>
 
-            <!-- PREMIUM: UTILITY DRAWER -->
+            <!-- UTILITY DRAWER -->
             <div class="utility-drawer">
                 <button id="export-btn" class="icon-btn" title="Export Session Data">⎘</button>
                 <button id="notify-btn" class="icon-btn" title="Enable Notifications">🔔</button>
-                <button id="haptic-toggle" class="icon-btn" title="Toggle Haptics">📳</button>
+                <button id="haptic-toggle" class="icon-btn active" title="Toggle Haptics">📳</button>
             </div>
 
             <div class="recovery-section">
+                <p class="label-small">EMERGENCY BYPASS</p>
                 <input type="text" id="recovery-input" placeholder="RECOVER-XXXX-XXXX">
-                <button id="recovery-btn" class="secondary-btn">EMERGENCY BYPASS</button>
+                <button id="recovery-btn" class="secondary-btn">APPLY KEY</button>
             </div>
         </section>
 
         <!-- SECTION: CHALLENGE AREA -->
         <section id="game-screen" class="screen hidden">
             <h2 id="game-title">VERIFICATION REQUIRED</h2>
-            <div id="game-container">
-                <!-- Premium Games: Tic-Tac-Toe, Simon, Logic, or Number Guess -->
-            </div>
+            <div id="game-container"></div>
             <div id="game-feedback" class="feedback-msg"></div>
         </section>
 
@@ -114,12 +113,12 @@
         </section>
     </div>
 
-    <!-- Audio Elements for Premium Feedback -->
+    <!-- Audio Elements -->
     <audio id="snd-click" preload="auto" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
     <audio id="snd-fail" preload="auto" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
     <audio id="snd-success" preload="auto" src="https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3"></audio>
 
-    <!-- Script Architecture -->
+    <!-- Scripts -->
     <script src="js/storage.js"></script>
     <script src="js/time.js"></script>
     <script src="js/games.js"></script>
