@@ -1,38 +1,89 @@
+/**
+ * TERMINAL CORE ENGINE
+ * Orchestrates state transitions, difficulty scaling, and PWA integration.
+ */
 const App = {
     state: null,
-    updateInterval: null,
+    heartbeat: null,
+    hapticsEnabled: true,
 
     async init() {
+        // 1. Synchronise with Time Consensus Engine
         await TimeManager.sync();
+
+        // 2. Load Vault Data
         this.state = StorageManager.load();
 
+        // 3. Setup Global UI Listeners
+        this.attachListeners();
+
+        // 4. Initialise State
         if (!this.state) {
             this.showScreen('setup-screen');
         } else if (this.state.unlocked) {
             this.showUnlocked();
         } else {
+            this.updateDifficulty();
             this.startLockCycle();
         }
-
-        this.attachGlobalListeners();
+        
+        this.updateStatsDisplay();
     },
 
-    attachGlobalListeners() {
-        document.getElementById('start-lock-btn').onclick = () => this.handleSetup();
-        document.getElementById('request-unlock-btn').onclick = () => this.launchChallenge();
+    attachListeners() {
+        // Setup Logic
+        document.getElementById('start-lock-btn').onclick = () => this.commenceLockdown();
+        
+        // Active Lock Logic
+        document.getElementById('request-unlock-btn').onclick = () => this.initiateChallenge();
         document.getElementById('recovery-btn').onclick = () => this.handleRecovery();
+        
+        // Utility Drawer
+        document.getElementById('haptic-toggle').onclick = (e) => {
+            this.hapticsEnabled = !this.hapticsEnabled;
+            e.currentTarget.classList.toggle('active', this.hapticsEnabled);
+        };
+
+        document.getElementById('export-btn').onclick = () => {
+            const bundle = StorageManager.exportSession();
+            navigator.clipboard.writeText(bundle);
+            alert("SESSION DATA COPIED TO CLIPBOARD");
+        };
+
+        // Termination
         document.getElementById('reset-app-btn').onclick = () => {
             StorageManager.clear();
             location.reload();
         };
     },
 
-    handleSetup() {
-        const pin = document.getElementById('pin-input').value;
-        const maxHours = parseInt(document.getElementById('max-time-input').value);
-        if (pin.length !== 4) return alert("Please enter a 4-digit PIN.");
+    /**
+     * DIFFICULTY SCALING ENGINE
+     * Calculates Win Rate to set Challenge Tiers (1-3)
+     */
+    updateDifficulty() {
+        const stats = StorageManager.getStats();
+        const totalGames = stats.wins + stats.losses;
+        if (totalGames < 5) {
+            GamesManager.difficulty = 1; // Training mode
+        } else {
+            const winRate = (stats.wins / totalGames) * 100;
+            if (winRate > 75) GamesManager.difficulty = 3;      // Elite
+            else if (winRate > 50) GamesManager.difficulty = 2; // Advanced
+            else GamesManager.difficulty = 1;                   // Standard
+        }
+        console.log(`System Difficulty Scaled to: Tier ${GamesManager.difficulty}`);
+    },
 
-        const initialMins = Math.floor(Math.random() * (maxHours * 60)) + 1;
+    commenceLockdown() {
+        const pin = document.getElementById('pin-input').value;
+        const maxH = parseInt(document.getElementById('max-time-input').value);
+        
+        if (pin.length !== 4 || isNaN(maxH)) {
+            return alert("PROTOCOL ERROR: INVALID PARAMETERS");
+        }
+
+        const initialMins = Math.floor(Math.random() * (maxH * 60)) + 1;
         const recoveryKey = StorageManager.generateRecoveryKey();
 
         this.state = {
@@ -41,75 +92,133 @@ const App = {
             initialMins,
             penaltyMins: 0,
             unlocked: false,
+            mysteryMode: document.getElementById('mystery-toggle').checked,
+            scaling: document.getElementById('difficulty-toggle').checked,
             recoveryKey
         };
 
         StorageManager.save(this.state);
-        alert(`MASTER RECOVERY KEY:\n${recoveryKey}\nKeep this safe!`);
+        StorageManager.updateStats('session');
+        
+        alert(`ENCRYPTION KEY GENERATED:\n${recoveryKey}\nSTORE MANUALLY.`);
         this.startLockCycle();
     },
 
     startLockCycle() {
         this.showScreen('lock-screen');
-        if (this.updateInterval) clearInterval(this.updateInterval);
+        if (this.heartbeat) clearInterval(this.heartbeat);
 
-        this.updateInterval = setInterval(() => {
+        // Mystery Mode UI Adjustment
+        const timerText = document.getElementById('main-countdown');
+        const overlay = document.getElementById('mystery-overlay');
+        
+        if (this.state.mysteryMode) {
+            timerText.classList.add('hidden');
+            overlay.classList.remove('hidden');
+        }
+
+        this.heartbeat = setInterval(() => {
+            const now = TimeManager.getVerifiedTime();
+            
+            // Formula: $T_{threshold} = T_{start} + (M_{initial} \times 60,000) + (M_{penalty} \times 60,000)$
             const threshold = this.state.startTime + (this.state.initialMins + this.state.penaltyMins) * 60000;
-            const remaining = threshold - TimeManager.getVerifiedTime();
+            const remaining = threshold - now;
 
-            document.getElementById('main-countdown').innerText = TimeManager.formatTime(remaining);
+            // Update Timers
+            timerText.innerText = TimeManager.formatTime(remaining);
             document.getElementById('penalty-timer').innerText = `+${TimeManager.formatTime(this.state.penaltyMins * 60000)}`;
+            
+            // Update Progress Bar
+            const totalLockTime = (this.state.initialMins + this.state.penaltyMins) * 60000;
+            const progress = Math.min(100, Math.max(0, 100 - (remaining / totalLockTime * 100)));
+            document.getElementById('penalty-progress').style.width = `${progress}%`;
 
-            const btn = document.getElementById('request-unlock-btn');
-            if (remaining <= 0) btn.classList.remove('hidden');
-            else btn.classList.add('hidden');
+            // Reveal/Hide Logic
+            const requestBtn = document.getElementById('request-unlock-btn');
+            if (remaining <= 0) {
+                requestBtn.classList.remove('hidden');
+                if (this.state.mysteryMode) {
+                    timerText.classList.remove('hidden');
+                    overlay.classList.add('hidden');
+                    overlay.innerText = "ACCESS AUTHORISED";
+                }
+            } else {
+                requestBtn.classList.add('hidden');
+            }
         }, 1000);
     },
 
     launchChallenge() {
-        clearInterval(this.updateInterval);
+        clearInterval(this.heartbeat);
         this.showScreen('game-screen');
-        document.getElementById('game-feedback').innerText = "";
         
-        const gameType = Math.random() > 0.5 ? 'ttt' : 'guess';
-        if (gameType === 'ttt') {
-            document.getElementById('game-title').innerText = "Tic-Tac-Toe: Win to Unlock";
-            GamesManager.initTicTacToe(document.getElementById('game-container'), (win) => this.handleGameResult(win));
-        } else {
-            document.getElementById('game-title').innerText = "Guess the Number";
-            GamesManager.initGuessNumber(document.getElementById('game-container'), (win) => this.handleGameResult(win));
+        const container = document.getElementById('game-container');
+        document.getElementById('game-feedback').innerText = "";
+
+        // Select game based on difficulty tier
+        const pool = ['guess', 'ttt'];
+        if (GamesManager.difficulty >= 2) pool.push('pattern');
+        if (GamesManager.difficulty >= 3) pool.push('logic');
+
+        const selection = pool[Math.floor(Math.random() * pool.length)];
+
+        switch(selection) {
+            case 'ttt': GamesManager.initTicTacToe(container, (w) => this.processResult(w)); break;
+            case 'guess': GamesManager.initGuessNumber(container, (w) => this.processResult(w)); break;
+            case 'pattern': GamesManager.initPatternRecall(container, (w) => this.processResult(w)); break;
+            case 'logic': GamesManager.initLogicGates(container, (w) => this.processResult(w)); break;
         }
     },
 
-    handleGameResult(win) {
-        if (win) {
+    processResult(success) {
+        if (success) {
+            StorageManager.updateStats('win');
             this.state.unlocked = true;
             StorageManager.save(this.state);
             this.showUnlocked();
         } else {
-            const penalty = Math.floor(Math.random() * 180) + 60; // 1-4 Hours
-            this.state.penaltyMins += penalty;
+            StorageManager.updateStats('loss');
+            // Premium Penalty: Random range 2-6 hours on higher difficulty
+            const basePenalty = GamesManager.difficulty * 60; 
+            const variance = Math.floor(Math.random() * 120);
+            const totalPenalty = basePenalty + variance;
+
+            this.state.penaltyMins += totalPenalty;
             StorageManager.save(this.state);
-            alert(`Challenge failed. ${penalty} minutes added to penalty.`);
+            
+            alert(`PROTOCOL BREACH: SECURITY LOCK EXTENDED BY ${totalPenalty} MINUTES.`);
+            this.updateDifficulty();
             this.startLockCycle();
         }
+        this.updateStatsDisplay();
     },
 
     handleRecovery() {
         const input = document.getElementById('recovery-input').value.trim().toUpperCase();
-        if (this.state && input === this.state.recoveryKey) {
+        if (input === this.state.recoveryKey) {
             this.state.unlocked = true;
             StorageManager.save(this.state);
             this.showUnlocked();
         } else {
-            alert("Invalid Recovery Key.");
+            alert("BYPASS DENIED: INVALID KEY");
+            GamesManager.triggerFeedback('fail');
         }
     },
 
     showUnlocked() {
-        if (this.updateInterval) clearInterval(this.updateInterval);
+        if (this.heartbeat) clearInterval(this.heartbeat);
         this.showScreen('unlock-screen');
         document.getElementById('revealed-pin').innerText = this.state.pin;
+        GamesManager.triggerFeedback('success');
+    },
+
+    updateStatsDisplay() {
+        const stats = StorageManager.getStats();
+        const total = stats.wins + stats.losses;
+        const rate = total === 0 ? 0 : Math.round((stats.wins / total) * 100);
+        
+        document.getElementById('stat-winrate').innerText = `${rate}%`;
+        document.getElementById('stat-sessions').innerText = stats.sessions;
     },
 
     showScreen(id) {
@@ -118,4 +227,5 @@ const App = {
     }
 };
 
+// INITIALISE
 window.onload = () => App.init();
