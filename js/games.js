@@ -3,12 +3,12 @@
  * Includes difficulty scaling, haptic feedback, and advanced logic puzzles.
  */
 const GamesManager = {
-    difficulty: 1, // Scales from 1 to 3 based on Win Rate
+    difficulty: 1, // Scales from 1 (Standard) to 3 (Elite)
     onResult: null,
 
     /**
-     * TIER 1: TIC-TAC-TOE (AI Scaling)
-     * High Difficulty = Unbeatable AI
+     * TIER 1: TIC-TAC-TOE
+     * Logic: Win to unlock. Draws count as a loss.
      */
     initTicTacToe(container, onResult) {
         this.onResult = onResult;
@@ -31,6 +31,7 @@ const GamesManager = {
                     if (this.checkTTT(board) === 'X') return this.complete(true);
                     if (!board.includes(null)) return this.complete(false);
 
+                    // AI Response Delay
                     setTimeout(() => {
                         this.tttAIMove(board);
                         render();
@@ -44,8 +45,8 @@ const GamesManager = {
     },
 
     /**
-     * TIER 2: GUESS THE NUMBER (Range Scaling)
-     * High Difficulty = Range 1-500 instead of 1-100
+     * TIER 2: GUESS THE NUMBER
+     * Logic: Solve within 7 attempts. Range increases with difficulty.
      */
     initGuessNumber(container, onResult) {
         this.onResult = onResult;
@@ -56,7 +57,7 @@ const GamesManager = {
         container.innerHTML = `
             <div class="game-box">
                 <p>ANALYSE VALUE: 1 - ${range}</p>
-                <p>ATTEMPTS: <span id="g-lives">${attempts}</span></p>
+                <p>ATTEMPTS REMAINING: <span id="g-lives">${attempts}</span></p>
                 <input type="number" id="g-input" placeholder="???">
                 <button id="g-submit" class="primary-btn">VALIDATE</button>
             </div>
@@ -72,17 +73,18 @@ const GamesManager = {
 
             document.getElementById('g-lives').innerText = attempts;
             document.getElementById('game-feedback').innerText = val > target ? "VALUE TOO HIGH" : "VALUE TOO LOW";
+            document.getElementById('g-input').value = "";
+            document.getElementById('g-input').focus();
         };
     },
 
     /**
-     * TIER 3: PATTERN RECALL (Simon Says)
-     * High Difficulty = Longer sequences and faster flashes
+     * TIER 3: PATTERN RECALL (SIMON SAYS)
+     * Logic: Repeat the sequence. Length increases with difficulty.
      */
     initPatternRecall(container, onResult) {
         this.onResult = onResult;
         const sequence = [];
-        const userSequence = [];
         const length = 4 + this.difficulty;
         
         container.innerHTML = `
@@ -95,15 +97,15 @@ const GamesManager = {
 
         for(let i=0; i<length; i++) sequence.push(Math.floor(Math.random() * 4));
 
-        // Play sequence
-        let i = 0;
+        // Display sequence to user
+        let step = 0;
         const interval = setInterval(() => {
-            const cell = container.querySelector(`[data-id="${sequence[i]}"]`);
+            const cell = container.querySelector(`[data-id="${sequence[step]}"]`);
             cell.style.background = "var(--neon-cyan)";
             this.triggerFeedback('click');
             setTimeout(() => cell.style.background = "", 400);
-            i++;
-            if(i >= sequence.length) {
+            step++;
+            if(step >= sequence.length) {
                 clearInterval(interval);
                 this.enablePatternInput(container, sequence);
             }
@@ -111,23 +113,23 @@ const GamesManager = {
     },
 
     /**
-     * TIER 4: LOGIC GATES
-     * User must toggle bits to satisfy an "AND/OR" condition
+     * TIER 4: LOGIC GATES (BINARY SUM)
+     * Logic: Toggle bits (8, 4, 2, 1) to match the target sum.
      */
     initLogicGates(container, onResult) {
         this.onResult = onResult;
-        const target = Math.floor(Math.random() * 15) + 1; // 4-bit target
+        const target = Math.floor(Math.random() * 15) + 1;
         let current = 0;
 
         container.innerHTML = `
             <p>STABILISE LOGIC BRIDGE: TARGET ${target}</p>
             <div class="utility-drawer">
-                <button class="bit-btn" data-bit="8">0</button>
-                <button class="bit-btn" data-bit="4">0</button>
-                <button class="bit-btn" data-bit="2">0</button>
-                <button class="bit-btn" data-bit="1">0</button>
+                <button class="bit-btn icon-btn" data-bit="8">0</button>
+                <button class="bit-btn icon-btn" data-bit="4">0</button>
+                <button class="bit-btn icon-btn" data-bit="2">0</button>
+                <button class="bit-btn icon-btn" data-bit="1">0</button>
             </div>
-            <p>CURRENT SUM: <span id="bit-sum">0</span></p>
+            <p style="margin-top:10px;">CURRENT SUM: <span id="bit-sum" style="color:var(--neon-gold)">0</span></p>
             <button id="bit-submit" class="primary-btn">LOCK BITS</button>
         `;
 
@@ -148,11 +150,11 @@ const GamesManager = {
         };
     },
 
-    /* --- INTERNAL UTILITIES --- */
+    /* --- ENGINE UTILITIES --- */
 
     tttAIMove(board) {
         const empty = board.map((v, i) => v === null ? i : null).filter(v => v !== null);
-        // If difficulty is 3, AI never misses a winning move or a block.
+        // Level 3 AI plays optimally; lower levels play randomly.
         const move = (this.difficulty === 3) ? empty[0] : empty[Math.floor(Math.random() * empty.length)];
         board[move] = 'O';
     },
@@ -164,14 +166,16 @@ const GamesManager = {
     },
 
     enablePatternInput(container, sequence) {
-        let step = 0;
+        let playerStep = 0;
         container.querySelectorAll('.ttt-cell').forEach(cell => {
             cell.onclick = () => {
                 const id = parseInt(cell.dataset.id);
-                if (id === sequence[step]) {
+                if (id === sequence[playerStep]) {
+                    cell.style.background = "var(--neon-blue)";
+                    setTimeout(() => cell.style.background = "", 200);
                     this.triggerFeedback('click');
-                    step++;
-                    if (step === sequence.length) this.complete(true);
+                    playerStep++;
+                    if (playerStep === sequence.length) this.complete(true);
                 } else {
                     this.complete(false);
                 }
@@ -185,17 +189,17 @@ const GamesManager = {
     },
 
     triggerFeedback(type) {
-        // Haptic Feedback
-        if ("vibrate" in navigator) {
-            if (type === 'click') navigator.vibrate(10);
-            if (type === 'fail') navigator.vibrate([50, 50, 50]);
-            if (type === 'success') navigator.vibrate([100, 30, 100]);
+        // Haptic pulse for mobile devices
+        if ("vibrate" in navigator && App.hapticsEnabled) {
+            if (type === 'click') navigator.vibrate(15);
+            if (type === 'fail') navigator.vibrate([60, 40, 60]);
+            if (type === 'success') navigator.vibrate([100, 50, 100]);
         }
-        // Audio Hooks
+        // Audio hook
         const snd = document.getElementById(`snd-${type}`);
         if (snd) {
             snd.currentTime = 0;
-            snd.play().catch(() => {}); // Catch browser auto-play blocks
+            snd.play().catch(() => {}); 
         }
     }
 };
