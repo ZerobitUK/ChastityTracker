@@ -7,22 +7,30 @@ const App = {
     heartbeat: null,
     hapticsEnabled: true,
 
+    /**
+     * Initialises the application state and synchronises timing.
+     */
     async init() {
+        console.log("Terminal V2.1: Initialising...");
+        
         // 1. Initialise Time (Local Mode)
         await TimeManager.sync();
 
-        // 2. Load Vault Data
+        // 2. Load Vault Data from Storage
         this.state = StorageManager.load();
 
         // 3. Setup Global UI Listeners
         this.attachListeners();
 
-        // 4. Initialise State
+        // 4. Initialise UI State based on Vault
         if (!this.state) {
+            console.log("No active lock found. Showing setup.");
             this.showScreen('setup-screen');
         } else if (this.state.unlocked) {
+            console.log("Lock already cleared. Showing PIN.");
             this.showUnlocked();
         } else {
+            console.log("Active lock detected. Resuming cycle.");
             this.updateDifficulty();
             this.startLockCycle();
         }
@@ -30,41 +38,59 @@ const App = {
         this.updateStatsDisplay();
     },
 
+    /**
+     * Attaches persistent listeners to UI elements.
+     * Uses explicit 'App' referencing to prevent 'this' context loss.
+     */
     attachListeners() {
-        // Setup Screen
-        document.getElementById('start-lock-btn').onclick = () => this.commenceLockdown();
-        
-        // Active Lock Screen
-        document.getElementById('request-unlock-btn').onclick = () => this.launchChallenge();
-        document.getElementById('recovery-btn').onclick = () => this.handleRecovery();
-        
-        // Utility Drawer
-        document.getElementById('haptic-toggle').onclick = (e) => {
-            this.hapticsEnabled = !this.hapticsEnabled;
-            e.currentTarget.classList.toggle('active', this.hapticsEnabled);
-            GamesManager.triggerFeedback('click');
-        };
+        const startBtn = document.getElementById('start-lock-btn');
+        const unlockBtn = document.getElementById('request-unlock-btn');
+        const recoverBtn = document.getElementById('recovery-btn');
+        const hapticBtn = document.getElementById('haptic-toggle');
+        const exportBtn = document.getElementById('export-btn');
+        const resetBtn = document.getElementById('reset-app-btn');
 
-        document.getElementById('export-btn').onclick = () => {
-            const bundle = StorageManager.exportSession();
-            if (bundle) {
-                navigator.clipboard.writeText(bundle);
-                alert("SESSION DATA ENCRYPTED & COPIED TO CLIPBOARD");
-            }
-        };
+        if (startBtn) startBtn.onclick = () => App.commenceLockdown();
+        
+        if (unlockBtn) {
+            unlockBtn.onclick = () => {
+                console.log("Unlock Request Triggered.");
+                App.launchChallenge();
+            };
+        }
+        
+        if (recoverBtn) recoverBtn.onclick = () => App.handleRecovery();
 
-        // Termination / Reset
-        document.getElementById('reset-app-btn').onclick = () => {
-            if(confirm("TERMINATE ALL DATA? THIS ACTION IS PERMANENT.")) {
-                StorageManager.clear();
-                location.reload();
-            }
-        };
+        if (hapticBtn) {
+            hapticBtn.onclick = (e) => {
+                App.hapticsEnabled = !App.hapticsEnabled;
+                e.currentTarget.classList.toggle('active', App.hapticsEnabled);
+                GamesManager.triggerFeedback('click');
+            };
+        }
+
+        if (exportBtn) {
+            exportBtn.onclick = () => {
+                const bundle = StorageManager.exportSession();
+                if (bundle) {
+                    navigator.clipboard.writeText(bundle);
+                    alert("SESSION DATA ENCRYPTED & COPIED TO CLIPBOARD");
+                }
+            };
+        }
+
+        if (resetBtn) {
+            resetBtn.onclick = () => {
+                if (confirm("TERMINATE ALL DATA? THIS ACTION IS PERMANENT.")) {
+                    StorageManager.clear();
+                    location.reload();
+                }
+            };
+        }
     },
 
     /**
-     * DIFFICULTY SCALING ENGINE
-     * Dynamically sets game difficulty based on historic win rate.
+     * Sets game difficulty Tier (1-3) based on historic win rate.
      */
     updateDifficulty() {
         const stats = StorageManager.getStats();
@@ -78,9 +104,12 @@ const App = {
             else if (winRate > 50) GamesManager.difficulty = 2;
             else GamesManager.difficulty = 1;
         }
-        console.log(`System Tier: ${GamesManager.difficulty}`);
+        console.log(`Difficulty Tier Set: ${GamesManager.difficulty}`);
     },
 
+    /**
+     * Captures setup parameters and initiates the lock.
+     */
     commenceLockdown() {
         const pin = document.getElementById('pin-input').value;
         const maxH = parseInt(document.getElementById('max-time-input').value);
@@ -110,12 +139,17 @@ const App = {
         this.startLockCycle();
     },
 
+    /**
+     * Manages the active countdown and progress bar.
+     */
     startLockCycle() {
+        console.log("Starting Heartbeat Cycle...");
         this.showScreen('lock-screen');
         if (this.heartbeat) clearInterval(this.heartbeat);
 
         const timerText = document.getElementById('main-countdown');
         const overlay = document.getElementById('mystery-overlay');
+        const requestBtn = document.getElementById('request-unlock-btn');
         
         if (this.state.mysteryMode) {
             timerText.classList.add('hidden');
@@ -130,16 +164,20 @@ const App = {
             timerText.innerText = TimeManager.formatTime(remaining);
             document.getElementById('penalty-timer').innerText = `+${TimeManager.formatTime(this.state.penaltyMins * 60000)}`;
             
+            // Progress Bar Logic
             const totalLockTime = (this.state.initialMins + this.state.penaltyMins) * 60000;
             const progress = Math.min(100, Math.max(0, 100 - (remaining / totalLockTime * 100)));
             document.getElementById('penalty-progress').style.width = `${progress}%`;
 
-            const requestBtn = document.getElementById('request-unlock-btn');
+            // Reveal Challenge Button if ready
             if (remaining <= 0) {
-                requestBtn.classList.remove('hidden');
-                if (this.state.mysteryMode) {
-                    timerText.classList.remove('hidden');
-                    overlay.classList.add('hidden');
+                if (requestBtn.classList.contains('hidden')) {
+                    console.log("Timer expired. Revealing Access Button.");
+                    requestBtn.classList.remove('hidden');
+                    if (this.state.mysteryMode) {
+                        timerText.classList.remove('hidden');
+                        overlay.classList.add('hidden');
+                    }
                 }
             } else {
                 requestBtn.classList.add('hidden');
@@ -147,37 +185,47 @@ const App = {
         }, 1000);
     },
 
+    /**
+     * Switches to game mode and randomly selects a tier-appropriate trial.
+     */
     launchChallenge() {
-        clearInterval(this.heartbeat);
+        console.log("Switching to Challenge Mode...");
+        if (this.heartbeat) clearInterval(this.heartbeat);
+        
         this.showScreen('game-screen');
         
         const container = document.getElementById('game-container');
         document.getElementById('game-feedback').innerText = "";
 
-        // Determine which games are available based on current Tier
         const pool = ['guess', 'ttt'];
         if (GamesManager.difficulty >= 2) pool.push('pattern');
         if (GamesManager.difficulty >= 3) pool.push('logic');
 
         const selection = pool[Math.floor(Math.random() * pool.length)];
+        console.log(`Selected Challenge: ${selection}`);
 
         switch(selection) {
-            case 'ttt': GamesManager.initTicTacToe(container, (w) => this.processResult(w)); break;
-            case 'guess': GamesManager.initGuessNumber(container, (w) => this.processResult(w)); break;
-            case 'pattern': GamesManager.initPatternRecall(container, (w) => this.processResult(w)); break;
-            case 'logic': GamesManager.initLogicGates(container, (w) => this.processResult(w)); break;
+            case 'ttt': GamesManager.initTicTacToe(container, (w) => App.processResult(w)); break;
+            case 'guess': GamesManager.initGuessNumber(container, (w) => App.processResult(w)); break;
+            case 'pattern': GamesManager.initPatternRecall(container, (w) => App.processResult(w)); break;
+            case 'logic': GamesManager.initLogicGates(container, (w) => App.processResult(w)); break;
         }
     },
 
+    /**
+     * Handles win/loss results and calculates penalties.
+     */
     processResult(success) {
         if (success) {
+            console.log("Challenge Won.");
             StorageManager.updateStats('win');
             this.state.unlocked = true;
             StorageManager.save(this.state);
             this.showUnlocked();
         } else {
+            console.log("Challenge Failed. Applying Penalty.");
             StorageManager.updateStats('loss');
-            // Penalty scales with difficulty Tier
+            
             const basePenalty = GamesManager.difficulty * 60; 
             const variance = Math.floor(Math.random() * 120);
             const totalPenalty = basePenalty + variance;
@@ -195,6 +243,7 @@ const App = {
     handleRecovery() {
         const input = document.getElementById('recovery-input').value.trim().toUpperCase();
         if (input === this.state.recoveryKey) {
+            console.log("Recovery Bypass Accepted.");
             this.state.unlocked = true;
             StorageManager.save(this.state);
             this.showUnlocked();
@@ -220,9 +269,17 @@ const App = {
         document.getElementById('stat-sessions').innerText = stats.sessions;
     },
 
+    /**
+     * Utility to manage screen visibility.
+     */
     showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-        document.getElementById(id).classList.remove('hidden');
+        const target = document.getElementById(id);
+        if (target) {
+            target.classList.remove('hidden');
+        } else {
+            console.error(`FATAL: Screen ID '${id}' not found in DOM.`);
+        }
     }
 };
 
