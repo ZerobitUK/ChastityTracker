@@ -1,15 +1,26 @@
 {
-  "short_name": "LockApp",
-  "name": "Timed Lock Assistant",
+  "short_name": "TerminalV2",
+  "name": "SECURE LOCK: Terminal V2.0",
+  "description": "Premium multi-factor timed lock assistant with cyber-terminal aesthetic.",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "src": "https://cdn-icons-png.flaticon.com/512/2092/2092663.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2092/2092663.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "./index.html",
+  "background_color": "#020617",
   "display": "standalone",
+  "scope": "./",
   "theme_color": "#0f172a",
-  "background_color": "#0f172a"
+  "orientation": "portrait-primary",
+  "categories": ["utilities", "productivity"]
 }
