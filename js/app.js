@@ -3,112 +3,119 @@ const App = {
     updateInterval: null,
 
     async init() {
-        // Load existing state
-        this.state = StorageManager.getState();
-        
+        await TimeManager.sync();
+        this.state = StorageManager.load();
+
         if (!this.state) {
             this.showScreen('setup-screen');
-            this.setupListeners();
-        } else if (this.state.isUnlocked) {
-            this.showUnlockScreen();
+        } else if (this.state.unlocked) {
+            this.showUnlocked();
         } else {
             this.startLockCycle();
         }
+
+        this.attachGlobalListeners();
     },
 
-    setupListeners() {
-        document.getElementById('start-lock-btn').onclick = () => {
-            const pin = document.getElementById('pin-input').value;
-            const maxH = parseInt(document.getElementById('max-time-input').value);
-
-            if (pin.length === 4 && !isNaN(maxH)) {
-                this.state = StorageManager.saveInitialState(pin, maxH);
-                alert(`IMPORTANT: Your Recovery Key is ${this.state.recoveryKey}\nWrite this down!`);
-                this.startLockCycle();
-            } else {
-                alert("Please enter a 4-digit PIN and a valid maximum time.");
-            }
-        };
-
-        document.getElementById('request-unlock-btn').onclick = () => {
-            this.startChallenge();
+    attachGlobalListeners() {
+        document.getElementById('start-lock-btn').onclick = () => this.handleSetup();
+        document.getElementById('request-unlock-btn').onclick = () => this.launchChallenge();
+        document.getElementById('recovery-btn').onclick = () => this.handleRecovery();
+        document.getElementById('reset-app-btn').onclick = () => {
+            StorageManager.clear();
+            location.reload();
         };
     },
 
-    async startLockCycle() {
+    handleSetup() {
+        const pin = document.getElementById('pin-input').value;
+        const maxHours = parseInt(document.getElementById('max-time-input').value);
+        if (pin.length !== 4) return alert("Please enter a 4-digit PIN.");
+
+        const initialMins = Math.floor(Math.random() * (maxHours * 60)) + 1;
+        const recoveryKey = StorageManager.generateRecoveryKey();
+
+        this.state = {
+            pin,
+            startTime: TimeManager.getVerifiedTime(),
+            initialMins,
+            penaltyMins: 0,
+            unlocked: false,
+            recoveryKey
+        };
+
+        StorageManager.save(this.state);
+        alert(`MASTER RECOVERY KEY:\n${recoveryKey}\nKeep this safe!`);
+        this.startLockCycle();
+    },
+
+    startLockCycle() {
         this.showScreen('lock-screen');
-        
-        // Start the heart-beat timer
         if (this.updateInterval) clearInterval(this.updateInterval);
-        
-        this.updateInterval = setInterval(async () => {
-            const now = await TimeManager.getCurrentTime();
-            const status = TimeManager.calculateRemaining(this.state, now);
 
-            // Update UI
-            document.getElementById('main-countdown').innerText = TimeManager.formatTime(status.totalMs);
-            document.getElementById('penalty-timer').innerText = `+${TimeManager.formatTime(status.penaltyMs)}`;
+        this.updateInterval = setInterval(() => {
+            const threshold = this.state.startTime + (this.state.initialMins + this.state.penaltyMins) * 60000;
+            const remaining = threshold - TimeManager.getVerifiedTime();
 
-            // Toggle Request Button
-            const requestBtn = document.getElementById('request-unlock-btn');
-            if (status.isReady) {
-                requestBtn.classList.remove('hidden');
-            } else {
-                requestBtn.classList.add('hidden');
-            }
+            document.getElementById('main-countdown').innerText = TimeManager.formatTime(remaining);
+            document.getElementById('penalty-timer').innerText = `+${TimeManager.formatTime(this.state.penaltyMins * 60000)}`;
+
+            const btn = document.getElementById('request-unlock-btn');
+            if (remaining <= 0) btn.classList.remove('hidden');
+            else btn.classList.add('hidden');
         }, 1000);
     },
 
-    startChallenge() {
+    launchChallenge() {
+        clearInterval(this.updateInterval);
         this.showScreen('game-screen');
-        const container = document.getElementById('game-container');
+        document.getElementById('game-feedback').innerText = "";
         
-        // Randomly pick between the two games
-        const gameChoice = Math.random() > 0.5 ? 'ttt' : 'guess';
-        
-        if (gameChoice === 'ttt') {
+        const gameType = Math.random() > 0.5 ? 'ttt' : 'guess';
+        if (gameType === 'ttt') {
             document.getElementById('game-title').innerText = "Tic-Tac-Toe: Win to Unlock";
-            GamesManager.initTicTacToe(container, (win) => this.handleGameResult(win));
+            GamesManager.initTicTacToe(document.getElementById('game-container'), (win) => this.handleGameResult(win));
         } else {
             document.getElementById('game-title').innerText = "Guess the Number";
-            GamesManager.initGuessNumber(container, (win) => this.handleGameResult(win));
+            GamesManager.initGuessNumber(document.getElementById('game-container'), (win) => this.handleGameResult(win));
         }
     },
 
-    handleGameResult(didWin) {
-        if (didWin) {
-            StorageManager.setUnlocked();
-            this.showUnlockScreen();
+    handleGameResult(win) {
+        if (win) {
+            this.state.unlocked = true;
+            StorageManager.save(this.state);
+            this.showUnlocked();
         } else {
-            // Add a random penalty between 1 and 4 hours (in minutes)
-            const penalty = Math.floor(Math.random() * (4 * 60 - 60 + 1)) + 60;
-            this.state = StorageManager.addPenalty(penalty);
-            
-            alert(`Challenge Failed. ${penalty} minutes added to penalty.`);
+            const penalty = Math.floor(Math.random() * 180) + 60; // 1-4 Hours
+            this.state.penaltyMins += penalty;
+            StorageManager.save(this.state);
+            alert(`Challenge failed. ${penalty} minutes added to penalty.`);
             this.startLockCycle();
         }
     },
 
-    showUnlockScreen() {
+    handleRecovery() {
+        const input = document.getElementById('recovery-input').value.trim().toUpperCase();
+        if (this.state && input === this.state.recoveryKey) {
+            this.state.unlocked = true;
+            StorageManager.save(this.state);
+            this.showUnlocked();
+        } else {
+            alert("Invalid Recovery Key.");
+        }
+    },
+
+    showUnlocked() {
         if (this.updateInterval) clearInterval(this.updateInterval);
         this.showScreen('unlock-screen');
         document.getElementById('revealed-pin').innerText = this.state.pin;
-        
-        // Option to reset app after reveal
-        const resetBtn = document.createElement('button');
-        resetBtn.innerText = "Full Reset";
-        resetBtn.onclick = () => {
-            StorageManager.clearAll();
-            location.reload();
-        };
-        document.getElementById('unlock-screen').appendChild(resetBtn);
     },
 
-    showScreen(screenId) {
+    showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-        document.getElementById(screenId).classList.remove('hidden');
+        document.getElementById(id).classList.remove('hidden');
     }
 };
 
-// Initialise the app on load
 window.onload = () => App.init();
