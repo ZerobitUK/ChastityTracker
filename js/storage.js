@@ -1,22 +1,21 @@
 /**
- * STORAGE & ENCRYPTION MODULE
- * Manages persistence, statistical tracking, and data portability.
+ * CONTROL VAULT MODULE
+ * Manages the persistent state of denial, obedience metrics, and bypass keys.
  */
 const StorageManager = {
-    KEY: 'terminal_v2_vault',
-    STATS_KEY: 'terminal_v2_stats',
+    KEY: 'kink_tech_vault',
+    STATS_KEY: 'kink_tech_stats',
 
     /**
-     * Obfuscates and saves the primary lock state.
+     * Obfuscates and secures the current state of denial.
      */
     save(state) {
-        // Simple obfuscation to prevent casual data peeking
         const encoded = btoa(JSON.stringify(state));
         localStorage.setItem(this.KEY, encoded);
     },
 
     /**
-     * Loads and decrypts the primary lock state.
+     * Retrieves and decodes the current vault state.
      */
     load() {
         const data = localStorage.getItem(this.KEY);
@@ -24,14 +23,14 @@ const StorageManager = {
         try {
             return JSON.parse(atob(data));
         } catch (e) {
-            console.error("Vault Decryption Error:", e);
+            console.error("Vault Access Error: Integrity Compromised.");
             return null;
         }
     },
 
     /**
-     * STATS ENGINE
-     * Tracks performance metrics for the Premium Dashboard.
+     * OBEDIENCE METRICS
+     * Tracks trials won and lost to calculate the Obedience Tier.
      */
     updateStats(type) {
         let stats = this.getStats();
@@ -49,8 +48,8 @@ const StorageManager = {
     },
 
     /**
-     * DATA PORTABILITY
-     * Generates an obfuscated string for session migration across browsers.
+     * STATE PORTABILITY
+     * Generates a string to transfer the current state of denial to another device.
      */
     exportSession() {
         const state = this.load();
@@ -75,8 +74,8 @@ const StorageManager = {
     },
 
     /**
-     * SECURITY: RECOVERY KEY GENERATION
-     * Generates a 2-segment alphanumeric bypass key.
+     * MASTER OVERRIDE GENERATOR
+     * Creates a high-entropy alphanumeric key for emergency release.
      */
     generateRecoveryKey() {
         const segments = [];
