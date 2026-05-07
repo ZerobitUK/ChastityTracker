@@ -1,15 +1,15 @@
 {
-  "name": "Chastity Tracker",
-  "short_name": "ChastityTracker",
-  "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#121212",
+  "short_name": "LockApp",
+  "name": "Timed Lock Assistant",
   "icons": [
     {
       "src": "favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
     }
-  ]
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0f172a",
+  "background_color": "#0f172a"
 }
