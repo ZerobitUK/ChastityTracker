@@ -1,6 +1,6 @@
 /**
  * TERMINAL CORE ENGINE
- * Orchestrates state transitions, difficulty scaling, and PWA integration.
+ * Orchestrates state transitions, difficulty scaling, and UI logic.
  */
 const App = {
     state: null,
@@ -8,7 +8,7 @@ const App = {
     hapticsEnabled: true,
 
     async init() {
-        // 1. Synchronise with Time Consensus Engine
+        // 1. Initialise Time (Local Mode)
         await TimeManager.sync();
 
         // 2. Load Vault Data
@@ -31,10 +31,10 @@ const App = {
     },
 
     attachListeners() {
-        // Setup Logic
+        // Setup Screen
         document.getElementById('start-lock-btn').onclick = () => this.commenceLockdown();
         
-        // Active Lock Logic - FIXED FUNCTION NAME
+        // Active Lock Screen
         document.getElementById('request-unlock-btn').onclick = () => this.launchChallenge();
         document.getElementById('recovery-btn').onclick = () => this.handleRecovery();
         
@@ -42,19 +42,20 @@ const App = {
         document.getElementById('haptic-toggle').onclick = (e) => {
             this.hapticsEnabled = !this.hapticsEnabled;
             e.currentTarget.classList.toggle('active', this.hapticsEnabled);
+            GamesManager.triggerFeedback('click');
         };
 
         document.getElementById('export-btn').onclick = () => {
             const bundle = StorageManager.exportSession();
             if (bundle) {
                 navigator.clipboard.writeText(bundle);
-                alert("SESSION DATA COPIED TO CLIPBOARD");
+                alert("SESSION DATA ENCRYPTED & COPIED TO CLIPBOARD");
             }
         };
 
-        // Termination
+        // Termination / Reset
         document.getElementById('reset-app-btn').onclick = () => {
-            if(confirm("TERMINATE ALL DATA? THIS CANNOT BE UNDONE.")) {
+            if(confirm("TERMINATE ALL DATA? THIS ACTION IS PERMANENT.")) {
                 StorageManager.clear();
                 location.reload();
             }
@@ -63,11 +64,13 @@ const App = {
 
     /**
      * DIFFICULTY SCALING ENGINE
+     * Dynamically sets game difficulty based on historic win rate.
      */
     updateDifficulty() {
         const stats = StorageManager.getStats();
         const totalGames = stats.wins + stats.losses;
-        if (totalGames < 5) {
+        
+        if (totalGames < 3) {
             GamesManager.difficulty = 1;
         } else {
             const winRate = (stats.wins / totalGames) * 100;
@@ -75,6 +78,7 @@ const App = {
             else if (winRate > 50) GamesManager.difficulty = 2;
             else GamesManager.difficulty = 1;
         }
+        console.log(`System Tier: ${GamesManager.difficulty}`);
     },
 
     commenceLockdown() {
@@ -102,7 +106,7 @@ const App = {
         StorageManager.save(this.state);
         StorageManager.updateStats('session');
         
-        alert(`ENCRYPTION KEY GENERATED:\n${recoveryKey}\nSTORE MANUALLY.`);
+        alert(`BYPASS KEY GENERATED:\n${recoveryKey}\nSAVE THIS EXTERNALLY.`);
         this.startLockCycle();
     },
 
@@ -150,6 +154,7 @@ const App = {
         const container = document.getElementById('game-container');
         document.getElementById('game-feedback').innerText = "";
 
+        // Determine which games are available based on current Tier
         const pool = ['guess', 'ttt'];
         if (GamesManager.difficulty >= 2) pool.push('pattern');
         if (GamesManager.difficulty >= 3) pool.push('logic');
@@ -172,6 +177,7 @@ const App = {
             this.showUnlocked();
         } else {
             StorageManager.updateStats('loss');
+            // Penalty scales with difficulty Tier
             const basePenalty = GamesManager.difficulty * 60; 
             const variance = Math.floor(Math.random() * 120);
             const totalPenalty = basePenalty + variance;
@@ -179,7 +185,7 @@ const App = {
             this.state.penaltyMins += totalPenalty;
             StorageManager.save(this.state);
             
-            alert(`PROTOCOL BREACH: SECURITY LOCK EXTENDED BY ${totalPenalty} MINUTES.`);
+            alert(`SECURITY BREACH: LOCK EXTENDED BY ${totalPenalty} MINUTES.`);
             this.updateDifficulty();
             this.startLockCycle();
         }
@@ -193,7 +199,7 @@ const App = {
             StorageManager.save(this.state);
             this.showUnlocked();
         } else {
-            alert("BYPASS DENIED: INVALID KEY");
+            alert("ACCESS DENIED: INVALID BYPASS KEY");
             GamesManager.triggerFeedback('fail');
         }
     },
@@ -220,4 +226,5 @@ const App = {
     }
 };
 
+// INITIALISE TERMINAL
 window.onload = () => App.init();
