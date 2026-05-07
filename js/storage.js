@@ -7,14 +7,17 @@ const StorageManager = {
     STATS_KEY: 'terminal_v2_stats',
 
     /**
-     * Initialises or retrieves the primary lock state.
-     * Uses a Base64 obfuscation layer to prevent casual peeking.
+     * Obfuscates and saves the primary lock state.
      */
     save(state) {
+        // Simple obfuscation to prevent casual data peeking
         const encoded = btoa(JSON.stringify(state));
         localStorage.setItem(this.KEY, encoded);
     },
 
+    /**
+     * Loads and decrypts the primary lock state.
+     */
     load() {
         const data = localStorage.getItem(this.KEY);
         if (!data) return null;
@@ -47,12 +50,11 @@ const StorageManager = {
 
     /**
      * DATA PORTABILITY
-     * Generates an encrypted string for session migration.
+     * Generates an obfuscated string for session migration across browsers.
      */
     exportSession() {
         const state = this.load();
         if (!state) return null;
-        // Wrap state and stats into one exportable bundle
         const bundle = { state, stats: this.getStats(), timestamp: Date.now() };
         return btoa(JSON.stringify(bundle));
     },
@@ -70,11 +72,11 @@ const StorageManager = {
 
     clear() {
         localStorage.removeItem(this.KEY);
-        // We keep stats even if a session is cleared, unless explicitly wiped.
     },
 
     /**
      * SECURITY: RECOVERY KEY GENERATION
+     * Generates a 2-segment alphanumeric bypass key.
      */
     generateRecoveryKey() {
         const segments = [];
