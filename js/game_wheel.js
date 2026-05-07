@@ -1,62 +1,94 @@
-.wheel-container {
-    position: relative;
-    width: 300px;
-    height: 300px;
-    margin: 2rem auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+import { WHEEL_OUTCOMES } from './constants.js';
+
+const wheelEl = document.getElementById('wheel');
+const spinButton = document.getElementById('spin-button');
+const backButton = document.getElementById('wheel-back-btn');
+
+let onSpinComplete;
+let currentOutcomes = [];
+
+// Base palette for alternating slice colours
+const SLICE_COLORS = ['#2c3e50', '#34495e', '#1a252f', '#3b5998', '#2980b9'];
+const DOUBLE_COLOR = '#8e44ad';
+
+function setupWheel() {
+    wheelEl.innerHTML = '';
+    const segmentCount = currentOutcomes.length;
+    const segmentAngle = 360 / segmentCount;
+
+    let gradientString = [];
+    let currentAngle = 0;
+
+    currentOutcomes.forEach((outcome, index) => {
+        // Build the conic-gradient segment
+        const color = outcome.type === 'double' ? DOUBLE_COLOR : SLICE_COLORS[index % SLICE_COLORS.length];
+        const nextAngle = currentAngle + segmentAngle;
+        gradientString.push(`${color} ${currentAngle}deg ${nextAngle}deg`);
+
+        // Center the text perfectly in the middle of the slice
+        const textRotation = currentAngle + (segmentAngle / 2);
+
+        const container = document.createElement('div');
+        container.classList.add('wheel-spoke-container');
+        container.style.transform = `rotate(${textRotation}deg)`;
+
+        const text = document.createElement('div');
+        text.classList.add('wheel-spoke-text');
+        text.textContent = outcome.text;
+
+        if (outcome.type === 'double') {
+            text.classList.add('double-or-nothing');
+        }
+
+        container.appendChild(text);
+        wheelEl.appendChild(container);
+
+        currentAngle = nextAngle;
+    });
+
+    // Apply the arcade-style gradient
+    wheelEl.style.background = `conic-gradient(${gradientString.join(', ')})`;
 }
 
-.wheel-pointer {
-    position: absolute;
-    top: 50%;
-    left: 100%;
-    transform: translateY(-50%) translateX(-10px);
-    width: 0;
-    height: 0;
-    border-top: 15px solid transparent;
-    border-bottom: 15px solid transparent;
-    border-left: 30px solid var(--primary-color);
-    z-index: 2;
+function spin() {
+    spinButton.disabled = true;
+    backButton.style.display = 'none';
+    
+    const segmentCount = currentOutcomes.length;
+    const segmentAngle = 360 / segmentCount;
+    const winningSegmentIndex = Math.floor(Math.random() * segmentCount);
+
+    // Adjust target rotation to align the slice center with the pointer
+    const targetRotation = -(winningSegmentIndex * segmentAngle) - (segmentAngle / 2);
+    const fullSpins = 5 + Math.floor(Math.random() * 3);
+    const finalAngle = targetRotation + (360 * fullSpins);
+
+    wheelEl.style.transform = `rotate(${finalAngle}deg)`;
+
+    setTimeout(() => {
+        const winningOutcome = currentOutcomes[winningSegmentIndex];
+        backButton.style.display = 'block';
+        onSpinComplete(winningOutcome);
+    }, 5500);
 }
 
-.wheel {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    border: 3px solid #444;
-    position: relative;
-    overflow: hidden;
-    transition: transform 5s cubic-bezier(0.25, 1, 0.5, 1);
-    /* Background is now dynamically handled via JS conic-gradient */
-}
+export function initWheel(spinCallback, outcomes = null) {
+    onSpinComplete = spinCallback;
+    currentOutcomes = outcomes || WHEEL_OUTCOMES;
+    setupWheel();
+    spinButton.disabled = false;
+    backButton.style.display = 'none';
 
-.wheel-spoke-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    transform-origin: center center;
-}
+    wheelEl.style.transition = 'none';
+    wheelEl.style.transform = 'rotate(0deg)';
 
-.wheel-spoke-text {
-    position: absolute;
-    top: 12%;
-    left: 50%;
-    transform: translateX(-50%);
-    color: #fff;
-    font-weight: bold;
-    font-size: 0.9em;
-    white-space: nowrap;
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
-    z-index: 1;
-}
+    setTimeout(() => {
+        wheelEl.style.transition = 'transform 5s cubic-bezier(0.25, 1, 0.5, 1)';
+    }, 50);
 
-.wheel-spoke-text.double-or-nothing {
-    color: #ffd700; /* Bright Gold */
-    font-weight: 900;
-    font-size: 1em;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
+    const spinHandler = () => {
+        spin();
+        spinButton.removeEventListener('click', spinHandler);
+    };
+    spinButton.addEventListener('click', spinHandler);
 }
