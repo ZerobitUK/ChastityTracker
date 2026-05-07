@@ -1,3 +1,5 @@
+import { showModal } from './ui.js'; // Requires showModal export from ui.js
+
 const elements = {
     video: document.getElementById('camera-stream'),
     canvas: document.getElementById('camera-canvas'),
@@ -7,9 +9,18 @@ const elements = {
 
 let stream = null;
 
+// Graceful fallback if showModal isn't strictly defined in ui.js yet
+function displayError(title, message) {
+    if (typeof showModal === 'function') {
+        showModal(title, message);
+    } else {
+        alert(`${title}\n\n${message}`);
+    }
+}
+
 export async function startCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("Camera API is not supported.");
+        displayError("Camera API Not Supported", "Your browser does not support camera access or it is disabled. If you are on mobile, please check your site settings.");
         return false;
     }
     try {
@@ -26,7 +37,7 @@ export async function startCamera() {
         return true;
     } catch (err) {
         console.error("Error accessing camera:", err);
-        alert("Could not access camera.");
+        displayError("Camera Permission Denied", "We need camera access to capture your check-in. Please explicitly allow camera permissions in your browser's site settings, refresh the page, and try again.");
         return false;
     }
 }
