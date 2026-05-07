@@ -1,6 +1,6 @@
 /**
- * TERMINAL CORE ENGINE
- * Orchestrates state transitions, difficulty scaling, and UI logic.
+ * KINK-TECH CORE ENGINE
+ * Orchestrates submission states, obedience scaling, and interface transitions.
  */
 const App = {
     state: null,
@@ -8,29 +8,26 @@ const App = {
     hapticsEnabled: true,
 
     /**
-     * Initialises the application state and synchronises timing.
+     * Initialises the interface and resumes any active denial session.
      */
     async init() {
-        console.log("Terminal V2.1: Initialising...");
+        console.log("Kink-Tech V2.1: System Online.");
         
-        // 1. Initialise Time (Local Mode)
+        // 1. Initialise Time (Internal Mode)
         await TimeManager.sync();
 
-        // 2. Load Vault Data from Storage
+        // 2. Access the Control Vault
         this.state = StorageManager.load();
 
-        // 3. Setup Global UI Listeners
+        // 3. Bind Interface Listeners
         this.attachListeners();
 
-        // 4. Initialise UI State based on Vault
+        // 4. Determine Initial State
         if (!this.state) {
-            console.log("No active lock found. Showing setup.");
             this.showScreen('setup-screen');
         } else if (this.state.unlocked) {
-            console.log("Lock already cleared. Showing PIN.");
             this.showUnlocked();
         } else {
-            console.log("Active lock detected. Resuming cycle.");
             this.updateDifficulty();
             this.startLockCycle();
         }
@@ -39,12 +36,11 @@ const App = {
     },
 
     /**
-     * Attaches persistent listeners to UI elements.
-     * Uses explicit 'App' referencing to prevent 'this' context loss.
+     * Binds persistent event listeners to the interface.
      */
     attachListeners() {
         const startBtn = document.getElementById('start-lock-btn');
-        const unlockBtn = document.getElementById('request-unlock-btn');
+        const requestBtn = document.getElementById('request-unlock-btn');
         const recoverBtn = document.getElementById('recovery-btn');
         const hapticBtn = document.getElementById('haptic-toggle');
         const exportBtn = document.getElementById('export-btn');
@@ -52,10 +48,10 @@ const App = {
 
         if (startBtn) startBtn.onclick = () => App.commenceLockdown();
         
-        if (unlockBtn) {
-            unlockBtn.onclick = () => {
-                console.log("Unlock Request Triggered.");
-                App.launchChallenge();
+        if (requestBtn) {
+            requestBtn.onclick = () => {
+                console.log("Release request detected. Initiating trial.");
+                App.launchTrial();
             };
         }
         
@@ -74,14 +70,14 @@ const App = {
                 const bundle = StorageManager.exportSession();
                 if (bundle) {
                     navigator.clipboard.writeText(bundle);
-                    alert("SESSION DATA ENCRYPTED & COPIED TO CLIPBOARD");
+                    alert("DENIAL STATE COPIED TO CLIPBOARD");
                 }
             };
         }
 
         if (resetBtn) {
             resetBtn.onclick = () => {
-                if (confirm("TERMINATE ALL DATA? THIS ACTION IS PERMANENT.")) {
+                if (confirm("TERMINATE SESSION? DATA WILL BE WIPED.")) {
                     StorageManager.clear();
                     location.reload();
                 }
@@ -90,32 +86,32 @@ const App = {
     },
 
     /**
-     * Sets game difficulty Tier (1-3) based on historic win rate.
+     * Calculates the Obedience Tier based on success/failure ratio.
      */
     updateDifficulty() {
         const stats = StorageManager.getStats();
-        const totalGames = stats.wins + stats.losses;
+        const totalTrials = stats.wins + stats.losses;
         
-        if (totalGames < 3) {
+        if (totalTrials < 3) {
             GamesManager.difficulty = 1;
         } else {
-            const winRate = (stats.wins / totalGames) * 100;
+            const winRate = (stats.wins / totalTrials) * 100;
             if (winRate > 75) GamesManager.difficulty = 3;
             else if (winRate > 50) GamesManager.difficulty = 2;
             else GamesManager.difficulty = 1;
         }
-        console.log(`Difficulty Tier Set: ${GamesManager.difficulty}`);
+        console.log(`Obedience Tier: ${GamesManager.difficulty}`);
     },
 
     /**
-     * Captures setup parameters and initiates the lock.
+     * Sets the parameters for the current sentence and locks the interface.
      */
     commenceLockdown() {
         const pin = document.getElementById('pin-input').value;
         const maxH = parseInt(document.getElementById('max-time-input').value);
         
         if (pin.length !== 4 || isNaN(maxH)) {
-            return alert("PROTOCOL ERROR: INVALID PARAMETERS");
+            return alert("INPUT ERROR: INVALID PARAMETERS");
         }
 
         const initialMins = Math.floor(Math.random() * (maxH * 60)) + 1;
@@ -135,15 +131,14 @@ const App = {
         StorageManager.save(this.state);
         StorageManager.updateStats('session');
         
-        alert(`BYPASS KEY GENERATED:\n${recoveryKey}\nSAVE THIS EXTERNALLY.`);
+        alert(`MASTER OVERRIDE KEY:\n${recoveryKey}\nSAVE THIS OR REMAIN LOCKED.`);
         this.startLockCycle();
     },
 
     /**
-     * Manages the active countdown and progress bar.
+     * Runs the active denial heartbeat and manages the 'Beg' button visibility.
      */
     startLockCycle() {
-        console.log("Starting Heartbeat Cycle...");
         this.showScreen('lock-screen');
         if (this.heartbeat) clearInterval(this.heartbeat);
 
@@ -164,15 +159,14 @@ const App = {
             timerText.innerText = TimeManager.formatTime(remaining);
             document.getElementById('penalty-timer').innerText = `+${TimeManager.formatTime(this.state.penaltyMins * 60000)}`;
             
-            // Progress Bar Logic
-            const totalLockTime = (this.state.initialMins + this.state.penaltyMins) * 60000;
-            const progress = Math.min(100, Math.max(0, 100 - (remaining / totalLockTime * 100)));
+            // Manage Progress Visuals
+            const totalSentence = (this.state.initialMins + this.state.penaltyMins) * 60000;
+            const progress = Math.min(100, Math.max(0, 100 - (remaining / totalSentence * 100)));
             document.getElementById('penalty-progress').style.width = `${progress}%`;
 
-            // Reveal Challenge Button if ready
+            // Reveal Trial Button when sentence is served
             if (remaining <= 0) {
                 if (requestBtn.classList.contains('hidden')) {
-                    console.log("Timer expired. Revealing Access Button.");
                     requestBtn.classList.remove('hidden');
                     if (this.state.mysteryMode) {
                         timerText.classList.remove('hidden');
@@ -186,12 +180,10 @@ const App = {
     },
 
     /**
-     * Switches to game mode and randomly selects a tier-appropriate trial.
+     * Transitions to the Trial Screen and selects a challenge.
      */
-    launchChallenge() {
-        console.log("Switching to Challenge Mode...");
+    launchTrial() {
         if (this.heartbeat) clearInterval(this.heartbeat);
-        
         this.showScreen('game-screen');
         
         const container = document.getElementById('game-container');
@@ -202,7 +194,6 @@ const App = {
         if (GamesManager.difficulty >= 3) pool.push('logic');
 
         const selection = pool[Math.floor(Math.random() * pool.length)];
-        console.log(`Selected Challenge: ${selection}`);
 
         switch(selection) {
             case 'ttt': GamesManager.initTicTacToe(container, (w) => App.processResult(w)); break;
@@ -213,19 +204,18 @@ const App = {
     },
 
     /**
-     * Handles win/loss results and calculates penalties.
+     * Evaluates Trial results and applies disciplinary time for failures.
      */
     processResult(success) {
         if (success) {
-            console.log("Challenge Won.");
             StorageManager.updateStats('win');
             this.state.unlocked = true;
             StorageManager.save(this.state);
             this.showUnlocked();
         } else {
-            console.log("Challenge Failed. Applying Penalty.");
             StorageManager.updateStats('loss');
             
+            // Disciplinary time scales with Obedience Tier
             const basePenalty = GamesManager.difficulty * 60; 
             const variance = Math.floor(Math.random() * 120);
             const totalPenalty = basePenalty + variance;
@@ -233,7 +223,7 @@ const App = {
             this.state.penaltyMins += totalPenalty;
             StorageManager.save(this.state);
             
-            alert(`SECURITY BREACH: LOCK EXTENDED BY ${totalPenalty} MINUTES.`);
+            alert(`DISCIPLINE EXTENDED: ${totalPenalty} MINUTES ADDED TO YOUR SENTENCE.`);
             this.updateDifficulty();
             this.startLockCycle();
         }
@@ -243,12 +233,11 @@ const App = {
     handleRecovery() {
         const input = document.getElementById('recovery-input').value.trim().toUpperCase();
         if (input === this.state.recoveryKey) {
-            console.log("Recovery Bypass Accepted.");
             this.state.unlocked = true;
             StorageManager.save(this.state);
             this.showUnlocked();
         } else {
-            alert("ACCESS DENIED: INVALID BYPASS KEY");
+            alert("OVERRIDE DENIED: INVALID KEY");
             GamesManager.triggerFeedback('fail');
         }
     },
@@ -269,19 +258,11 @@ const App = {
         document.getElementById('stat-sessions').innerText = stats.sessions;
     },
 
-    /**
-     * Utility to manage screen visibility.
-     */
     showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         const target = document.getElementById(id);
-        if (target) {
-            target.classList.remove('hidden');
-        } else {
-            console.error(`FATAL: Screen ID '${id}' not found in DOM.`);
-        }
+        if (target) target.classList.remove('hidden');
     }
 };
 
-// INITIALISE TERMINAL
 window.onload = () => App.init();
