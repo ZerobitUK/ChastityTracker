@@ -29,7 +29,7 @@
     position: relative;
     overflow: hidden;
     transition: transform 5s cubic-bezier(0.25, 1, 0.5, 1);
-    background-color: var(--secondary-color);
+    /* Background is now dynamically handled via JS conic-gradient */
 }
 
 .wheel-spoke-container {
@@ -41,30 +41,22 @@
     transform-origin: center center;
 }
 
-.wheel-spoke-line {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 1px;
-    height: 50%;
-    background-color: #444;
-    transform: translateX(-50%);
-}
-
 .wheel-spoke-text {
     position: absolute;
-    top: 15%;
+    top: 12%;
     left: 50%;
     transform: translateX(-50%);
-    color: var(--text-color);
+    color: #fff;
     font-weight: bold;
     font-size: 0.9em;
     white-space: nowrap;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+    z-index: 1;
 }
 
-/* NEW: Style for the Double or Nothing spoke */
 .wheel-spoke-text.double-or-nothing {
-    color: #C4A265; /* Muted Gold */
-    font-weight: bold;
+    color: #ffd700; /* Bright Gold */
+    font-weight: 900;
     font-size: 1em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 1);
 }
