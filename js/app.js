@@ -34,8 +34,8 @@ const App = {
         // Setup Logic
         document.getElementById('start-lock-btn').onclick = () => this.commenceLockdown();
         
-        // Active Lock Logic
-        document.getElementById('request-unlock-btn').onclick = () => this.initiateChallenge();
+        // Active Lock Logic - FIXED FUNCTION NAME
+        document.getElementById('request-unlock-btn').onclick = () => this.launchChallenge();
         document.getElementById('recovery-btn').onclick = () => this.handleRecovery();
         
         // Utility Drawer
@@ -46,33 +46,35 @@ const App = {
 
         document.getElementById('export-btn').onclick = () => {
             const bundle = StorageManager.exportSession();
-            navigator.clipboard.writeText(bundle);
-            alert("SESSION DATA COPIED TO CLIPBOARD");
+            if (bundle) {
+                navigator.clipboard.writeText(bundle);
+                alert("SESSION DATA COPIED TO CLIPBOARD");
+            }
         };
 
         // Termination
         document.getElementById('reset-app-btn').onclick = () => {
-            StorageManager.clear();
-            location.reload();
+            if(confirm("TERMINATE ALL DATA? THIS CANNOT BE UNDONE.")) {
+                StorageManager.clear();
+                location.reload();
+            }
         };
     },
 
     /**
      * DIFFICULTY SCALING ENGINE
-     * Calculates Win Rate to set Challenge Tiers (1-3)
      */
     updateDifficulty() {
         const stats = StorageManager.getStats();
         const totalGames = stats.wins + stats.losses;
         if (totalGames < 5) {
-            GamesManager.difficulty = 1; // Training mode
+            GamesManager.difficulty = 1;
         } else {
             const winRate = (stats.wins / totalGames) * 100;
-            if (winRate > 75) GamesManager.difficulty = 3;      // Elite
-            else if (winRate > 50) GamesManager.difficulty = 2; // Advanced
-            else GamesManager.difficulty = 1;                   // Standard
+            if (winRate > 75) GamesManager.difficulty = 3;
+            else if (winRate > 50) GamesManager.difficulty = 2;
+            else GamesManager.difficulty = 1;
         }
-        console.log(`System Difficulty Scaled to: Tier ${GamesManager.difficulty}`);
     },
 
     commenceLockdown() {
@@ -108,7 +110,6 @@ const App = {
         this.showScreen('lock-screen');
         if (this.heartbeat) clearInterval(this.heartbeat);
 
-        // Mystery Mode UI Adjustment
         const timerText = document.getElementById('main-countdown');
         const overlay = document.getElementById('mystery-overlay');
         
@@ -119,28 +120,22 @@ const App = {
 
         this.heartbeat = setInterval(() => {
             const now = TimeManager.getVerifiedTime();
-            
-            // Formula: $T_{threshold} = T_{start} + (M_{initial} \times 60,000) + (M_{penalty} \times 60,000)$
             const threshold = this.state.startTime + (this.state.initialMins + this.state.penaltyMins) * 60000;
             const remaining = threshold - now;
 
-            // Update Timers
             timerText.innerText = TimeManager.formatTime(remaining);
             document.getElementById('penalty-timer').innerText = `+${TimeManager.formatTime(this.state.penaltyMins * 60000)}`;
             
-            // Update Progress Bar
             const totalLockTime = (this.state.initialMins + this.state.penaltyMins) * 60000;
             const progress = Math.min(100, Math.max(0, 100 - (remaining / totalLockTime * 100)));
             document.getElementById('penalty-progress').style.width = `${progress}%`;
 
-            // Reveal/Hide Logic
             const requestBtn = document.getElementById('request-unlock-btn');
             if (remaining <= 0) {
                 requestBtn.classList.remove('hidden');
                 if (this.state.mysteryMode) {
                     timerText.classList.remove('hidden');
                     overlay.classList.add('hidden');
-                    overlay.innerText = "ACCESS AUTHORISED";
                 }
             } else {
                 requestBtn.classList.add('hidden');
@@ -155,7 +150,6 @@ const App = {
         const container = document.getElementById('game-container');
         document.getElementById('game-feedback').innerText = "";
 
-        // Select game based on difficulty tier
         const pool = ['guess', 'ttt'];
         if (GamesManager.difficulty >= 2) pool.push('pattern');
         if (GamesManager.difficulty >= 3) pool.push('logic');
@@ -178,7 +172,6 @@ const App = {
             this.showUnlocked();
         } else {
             StorageManager.updateStats('loss');
-            // Premium Penalty: Random range 2-6 hours on higher difficulty
             const basePenalty = GamesManager.difficulty * 60; 
             const variance = Math.floor(Math.random() * 120);
             const totalPenalty = basePenalty + variance;
@@ -227,5 +220,4 @@ const App = {
     }
 };
 
-// INITIALISE
 window.onload = () => App.init();
