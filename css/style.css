@@ -1,0 +1,170 @@
+/* Core Variables for a Dark, Technical Theme */
+:root {
+    --bg-color: #0f172a;
+    --card-bg: #1e293b;
+    --primary-accent: #38bdf8;
+    --secondary-accent: #818cf8;
+    --penalty-color: #f43f5e;
+    --text-main: #f8fafc;
+    --text-dim: #94a3b8;
+    --border-radius: 8px;
+}
+
+* {
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+}
+
+#app-container {
+    background-color: var(--card-bg);
+    width: 100%;
+    max-width: 450px;
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.screen {
+    transition: opacity 0.3s ease;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Typography */
+h2 {
+    color: var(--primary-accent);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Timer Styles */
+.timer-display {
+    font-size: 2.5rem;
+    font-weight: bold;
+    font-family: 'Courier New', Courier, monospace;
+    margin: 1.5rem 0;
+}
+
+.penalty-box {
+    background: rgba(244, 63, 94, 0.1);
+    border: 1px solid var(--penalty-color);
+    padding: 10px;
+    border-radius: var(--border-radius);
+    margin-bottom: 1.5rem;
+}
+
+.penalty-box p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--penalty-color);
+}
+
+#penalty-timer {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* Buttons and Inputs */
+.input-group {
+    margin-bottom: 1rem;
+    text-align: left;
+}
+
+label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    background: #0f172a;
+    border: 1px solid var(--text-dim);
+    border-radius: 4px;
+    color: white;
+    font-size: 1rem;
+}
+
+button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: filter 0.2s;
+    margin-top: 10px;
+}
+
+.primary-btn {
+    background-color: var(--primary-accent);
+    color: #0f172a;
+}
+
+.secondary-btn {
+    background-color: var(--secondary-accent);
+    color: white;
+}
+
+button:hover {
+    filter: brightness(1.2);
+}
+
+/* Game Specific Styles: Tic-Tac-Toe */
+.ttt-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    max-width: 240px;
+    margin: 0 auto 20px;
+}
+
+.ttt-cell {
+    aspect-ratio: 1/1;
+    background: #0f172a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2rem;
+    border: 1px solid var(--primary-accent);
+    cursor: pointer;
+}
+
+.ttt-cell.taken {
+    cursor: not-allowed;
+}
+
+/* Game Specific Styles: Number Guess */
+#guess-input {
+    text-align: center;
+    font-size: 2rem;
+    margin: 10px 0;
+}
+
+.pin-reveal h1 {
+    font-size: 4rem;
+    letter-spacing: 10px;
+    color: var(--primary-accent);
+    background: rgba(56, 189, 248, 0.1);
+    padding: 20px;
+    border-radius: var(--border-radius);
+}
