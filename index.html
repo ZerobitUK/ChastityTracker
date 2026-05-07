@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lock Assistant</title>
+    <title>Timed Lock Assistant</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -25,38 +25,39 @@
         <!-- Section: Active Lock Screen -->
         <section id="lock-screen" class="screen hidden">
             <h2>Lock Active</h2>
-            <div class="timer-display">
-                <p>Initial Lock Remaining:</p>
-                <span id="main-countdown">--:--:--</span>
-            </div>
-            <div id="penalty-container" class="penalty-box">
-                <p>Current Penalty:</p>
+            <div class="timer-display" id="main-countdown">--:--:--</div>
+            <div class="penalty-box">
+                <p>Current Penalty Time</p>
                 <span id="penalty-timer">+00:00:00</span>
             </div>
             <button id="request-unlock-btn" class="primary-btn hidden">Request Unlock</button>
+            
+            <div class="recovery-info">
+                <p>Master Recovery Key</p>
+                <input type="text" id="recovery-input" placeholder="RECOVER-XXXX-XXXX">
+                <button id="recovery-btn">Apply Key</button>
+            </div>
         </section>
 
         <!-- Section: Game Area -->
         <section id="game-screen" class="screen hidden">
             <h2 id="game-title">Challenge</h2>
-            <div id="game-container">
-                <!-- Game content will be injected here via JS -->
-            </div>
+            <div id="game-container"></div>
             <p id="game-feedback"></p>
         </section>
 
-        <!-- Section: Unlock/Recovery -->
+        <!-- Section: Unlock Screen -->
         <section id="unlock-screen" class="screen hidden">
             <h2>Lock Opened</h2>
             <div class="pin-reveal">
                 <p>Your PIN is:</p>
                 <h1 id="revealed-pin">----</h1>
             </div>
-            <p class="note">The lock has been reset.</p>
+            <button id="reset-app-btn" class="secondary-btn">New Session</button>
         </section>
     </div>
 
-    <!-- Scripts -->
+    <!-- Logic Modules -->
     <script src="js/storage.js"></script>
     <script src="js/time.js"></script>
     <script src="js/games.js"></script>
