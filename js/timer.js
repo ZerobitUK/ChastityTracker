@@ -8,19 +8,41 @@ let timeCheckInterval = 60000;
 let isTimeDesynced = false;
 let lastKnownRealTime = 0;
 
-async function verifyTime() {
+// Helper to fetch time with a timeout
+async function fetchTime(url, timeExtractor) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 5000); // 5s timeout
     try {
-        // Simple fetch to a public time API (or your own server)
-        const controller = new AbortController();
-        const id = setTimeout(() => controller.abort(), 5000); // 5s timeout
-        const response = await fetch('https://worldtimeapi.org/api/ip', { signal: controller.signal });
+        const response = await fetch(url, { signal: controller.signal });
         clearTimeout(id);
-        
-        if (!response.ok) throw new Error('Time API Error');
+        if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
         const data = await response.json();
-        const serverTime = new Date(data.utc_datetime).getTime();
-        const localTime = Date.now();
+        return timeExtractor(data);
+    } catch (error) {
+        clearTimeout(id);
+        throw error;
+    }
+}
 
+async function verifyTime() {
+    let serverTime = null;
+
+    try {
+        // Primary API
+        serverTime = await fetchTime('https://worldtimeapi.org/api/ip', data => new Date(data.utc_datetime).getTime());
+    } catch (e1) {
+        console.warn("Primary Time API failed, trying fallback...", e1);
+        try {
+            // Fallback API
+            serverTime = await fetchTime('https://timeapi.io/api/Time/current/zone?timeZone=UTC', data => new Date(data.dateTime).getTime());
+        } catch (e2) {
+            console.warn("Fallback Time API failed. User might be offline.", e2);
+        }
+    }
+
+    const localTime = Date.now();
+
+    if (serverTime) {
         // Allow 2 minutes drift
         if (Math.abs(localTime - serverTime) > 120000) {
             isTimeDesynced = true;
@@ -28,10 +50,10 @@ async function verifyTime() {
             isTimeDesynced = false;
             lastKnownRealTime = serverTime;
         }
+        await db.set('last_local_heartbeat', localTime);
         return true;
-    } catch (error) {
-        console.warn("Time verification failed (Offline?)", error);
-        // Strict Mode: If we haven't verified in 2 hours, flag it.
+    } else {
+        // Offline tampering check: Strict Mode (2 hours without verification)
         if (Date.now() - lastKnownRealTime > 2 * 60 * 60 * 1000 && lastKnownRealTime !== 0) {
             isTimeDesynced = true;
         }
@@ -49,6 +71,15 @@ export function startUpdateInterval() {
 
         const now = Date.now();
 
+        // 1. Check for manual local clock adjustments while offline
+        const lastHeartbeat = await db.get('last_local_heartbeat') || now;
+        // If local time jumps by more than 10 seconds between our 1-second interval ticks, flag as tampered
+        if (Math.abs(now - lastHeartbeat) > 10000 && lastKnownRealTime !== 0) {
+            isTimeDesynced = true;
+        }
+        await db.set('last_local_heartbeat', now);
+
+        // 2. Perform regular online time verification
         if (now > lastTimeCheck + timeCheckInterval) {
             await verifyTime();
             lastTimeCheck = now;
@@ -56,14 +87,12 @@ export function startUpdateInterval() {
 
         if (isTimeDesynced) {
             updateTimerDisplay(now - currentTimer.startTime);
-            updateTimerMessage('System clock unverified or desynced. Timer paused.', true);
+            updateTimerMessage('System clock unverified or tampered. Timer paused.', true);
             toggleUnlockButton(false);
             return;
         }
 
-        // Logic below remains similar but using data from async fetch if needed
-        // Note: currentTimer is already fetched async above.
-        
+        // Logic continues as normal below
         if (currentTimer.maxEndTime && now >= currentTimer.maxEndTime) {
             showFinishedState(currentTimer.pin, currentTimer.isKeyholderMode);
             updateTimerDisplay(currentTimer.maxEndTime - currentTimer.startTime);
@@ -76,7 +105,6 @@ export function startUpdateInterval() {
         const doubledPenalty = await db.get('chastity_doubled_penalty');
         if (doubledPenalty && now < doubledPenalty.expiry) {
             const timeLeft = doubledPenalty.expiry - now;
-            // ... (rest of logic same as original, just use vars)
              updateDoubledPenaltyTimer(`Penalty Active (Doubled): ${Math.floor(timeLeft/60000)}m remaining`);
              toggleUnlockButton(false);
              return;
