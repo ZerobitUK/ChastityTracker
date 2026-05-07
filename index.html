@@ -3,63 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0f172a">
-    <title>SECURE LOCK | Terminal V2.0</title>
+    <meta name="theme-color" content="#0a0a0a">
+    <title>CONTROL | Submission Interface</title>
     
     <!-- PWA Support -->
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="theme-cyber">
+<body class="theme-kink">
     <div id="app-container">
         <!-- HEADER / STATUS BAR -->
         <header id="status-bar">
-            <span id="connection-status" class="status-indicator">SYSTEM READY</span>
-            <span id="version-tag">VER 2.1.0-LOCAL</span>
+            <span id="connection-status" class="status-indicator">SECURE & LOCKED</span>
+            <span id="version-tag">KINK-TECH V2.1</span>
         </header>
 
         <!-- SECTION: INITIAL SETUP -->
         <section id="setup-screen" class="screen">
-            <h2 class="glitch-text">Initialise Protocol</h2>
+            <h2 class="glitch-text">Commence Denial</h2>
             
             <div class="input-group">
-                <label>Define 4-Digit PIN</label>
+                <label>Define Your Release PIN</label>
                 <input type="password" id="pin-input" maxlength="4" autocomplete="off" placeholder="****">
             </div>
 
             <div class="input-group">
-                <label>Max Random Duration (Hours)</label>
+                <label>Maximum Sentence (Hours)</label>
                 <input type="number" id="max-time-input" value="48" min="1">
             </div>
 
             <div class="settings-grid">
                 <div class="toggle-group">
-                    <label>Mystery Mode</label>
+                    <label>Blind Submission</label>
                     <input type="checkbox" id="mystery-toggle" class="toggle-switch">
-                    <small>Hide countdown until ready</small>
+                    <small>Hide time remaining</small>
                 </div>
                 <div class="toggle-group">
-                    <label>Difficulty Scaling</label>
+                    <label>Obedience Scaling</label>
                     <input type="checkbox" id="difficulty-toggle" checked class="toggle-switch">
-                    <small>Harder games over time</small>
+                    <small>Harder trials over time</small>
                 </div>
             </div>
 
-            <button id="start-lock-btn" class="primary-btn pulse">COMMENCE LOCKDOWN</button>
+            <button id="start-lock-btn" class="primary-btn pulse">SUBMIT TO LOCK</button>
         </section>
 
         <!-- SECTION: ACTIVE LOCK SCREEN -->
         <section id="lock-screen" class="screen hidden">
-            <h2 id="lock-status-text">LOCKDOWN ACTIVE</h2>
+            <h2 id="lock-status-text">TOTAL DENIAL</h2>
             
             <div id="timer-wrapper">
                 <div class="timer-display" id="main-countdown">--:--:--</div>
-                <div id="mystery-overlay" class="hidden">STATUS: ENCRYPTED</div>
+                <div id="mystery-overlay" class="hidden">STATUS: ENFORCED</div>
             </div>
 
             <div class="penalty-box">
                 <div class="penalty-header">
-                    <span>ACCUMULATED PENALTY</span>
+                    <span>EXTENDED DISCIPLINE</span>
                     <span id="penalty-timer">+00:00:00</span>
                 </div>
                 <div class="progress-bar-bg">
@@ -67,29 +67,29 @@
                 </div>
             </div>
 
-            <button id="request-unlock-btn" class="primary-btn hidden">REQUEST DATA ACCESS</button>
+            <button id="request-unlock-btn" class="primary-btn hidden">BEG FOR RELEASE</button>
             
             <!-- STATS PANEL -->
             <div id="stats-panel">
                 <div class="stat">
-                    <label>WIN RATE</label>
+                    <label>SUCCESS RATE</label>
                     <span id="stat-winrate">0%</span>
                 </div>
                 <div class="stat">
-                    <label>TOTAL SESSIONS</label>
+                    <label>SESSIONS</label>
                     <span id="stat-sessions">0</span>
                 </div>
             </div>
 
             <!-- UTILITY DRAWER -->
             <div class="utility-drawer">
-                <button id="export-btn" class="icon-btn" title="Export Session Data">⎘</button>
-                <button id="notify-btn" class="icon-btn" title="Enable Notifications">🔔</button>
-                <button id="haptic-toggle" class="icon-btn active" title="Toggle Haptics">📳</button>
+                <button id="export-btn" class="icon-btn" title="Export State">⎘</button>
+                <button id="notify-btn" class="icon-btn" title="Notifications">🔔</button>
+                <button id="haptic-toggle" class="icon-btn active" title="Haptics">📳</button>
             </div>
 
             <div class="recovery-section">
-                <p class="label-small">EMERGENCY BYPASS</p>
+                <p class="label-small">MASTER OVERRIDE</p>
                 <input type="text" id="recovery-input" placeholder="RECOVER-XXXX-XXXX">
                 <button id="recovery-btn" class="secondary-btn">APPLY KEY</button>
             </div>
@@ -97,23 +97,23 @@
 
         <!-- SECTION: CHALLENGE AREA -->
         <section id="game-screen" class="screen hidden">
-            <h2 id="game-title">VERIFICATION REQUIRED</h2>
+            <h2 id="game-title">OBEDIENCE TRIAL</h2>
             <div id="game-container"></div>
             <div id="game-feedback" class="feedback-msg"></div>
         </section>
 
         <!-- SECTION: UNLOCK/PIN REVEAL -->
         <section id="unlock-screen" class="screen hidden">
-            <h2 class="success-text">ACCESS GRANTED</h2>
+            <h2 class="success-text">FREEDOM GRANTED</h2>
             <div class="pin-reveal-box">
-                <p>DECRYPTED PIN</p>
+                <p>YOUR KEY IS</p>
                 <h1 id="revealed-pin">----</h1>
             </div>
-            <button id="reset-app-btn" class="secondary-btn">TERMINATE SESSION</button>
+            <button id="reset-app-btn" class="secondary-btn">TERMINATE LOCK</button>
         </section>
     </div>
 
-    <!-- Audio Elements -->
+    <!-- Audio Elements: Replaced with more mechanical/heavy sounds -->
     <audio id="snd-click" preload="auto" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3"></audio>
     <audio id="snd-fail" preload="auto" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
     <audio id="snd-success" preload="auto" src="https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3"></audio>
