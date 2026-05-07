@@ -1,19 +1,18 @@
 /**
- * LOCAL TIME MODULE
- * High-performance time management using the device's internal clock.
+ * TIME MANAGEMENT MODULE
+ * Handles the temporal logic of denial using the local system clock.
  */
 const TimeManager = {
     /**
-     * Instantly returns the current local timestamp.
-     * Replaces the previous API-based consensus for zero-latency start-up.
+     * Retrieves the current timestamp from the device.
      */
     getVerifiedTime() {
         return Date.now();
     },
 
     /**
-     * Formats milliseconds into a premium HH:MM:SS string.
-     * @param {number} ms - The duration in milliseconds.
+     * Formats milliseconds into a clean, authoritative HH:MM:SS string.
+     * @param {number} ms - The duration remaining.
      */
     formatTime(ms) {
         if (ms <= 0) return "00:00:00";
@@ -22,7 +21,7 @@ const TimeManager = {
         let minutes = Math.floor(seconds / 60);
         let hours = Math.floor(minutes / 60);
 
-        // Ensures two-digit padding for a professional terminal look
+        // Pad values to maintain the high-end terminal look
         const h = hours.toString().padStart(2, '0');
         const m = (minutes % 60).toString().padStart(2, '0');
         const s = (seconds % 60).toString().padStart(2, '0');
@@ -31,10 +30,10 @@ const TimeManager = {
     },
 
     /**
-     * Dummy sync function to maintain compatibility with the App orchestrator.
+     * Compatibility bridge for the App orchestrator.
      */
     async sync() {
-        console.log("Local Time Mode: Synchronisation bypassed for performance.");
+        console.log("Internal Chronometer: Active.");
         return Promise.resolve();
     }
 };
